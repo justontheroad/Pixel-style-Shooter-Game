@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>像素射击 PIXEL SHOOTER</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="gameContainer"></div>
+
+  <button id="muteBtn" class="mute-btn">🔊</button>
+
+  <div id="startScreen" class="overlay">
+    <div class="start-content">
+      <h1 class="title-zh">像素射击</h1>
+      <h2 class="title-en">PIXEL SHOOTER</h2>
+      <div class="high-score-display">
+        <span class="label">BEST</span>
+        <span id="highScoreDisplay" class="value">0</span>
+      </div>
+      <button id="startBtn" class="pixel-btn pulse-btn">START</button>
+      <p class="tap-hint">TAP TO SWITCH CHANNEL</p>
+    </div>
+  </div>
+
+  <div id="hudOverlay" class="hud hidden">
+    <div class="hud-weapon">
+      <span id="weaponName" class="weapon-name">左轮手枪</span>
+      <span id="weaponLevel" class="weapon-level">Lv.1</span>
+    </div>
+    <div class="hud-score">
+      <span id="scoreDisplay" class="score-value">0</span>
+    </div>
+    <div class="hud-combo">
+      <span id="comboDisplay" class="combo-value"></span>
+      <span id="comboMult" class="combo-mult"></span>
+    </div>
+  </div>
+
+  <div id="gameOverScreen" class="overlay hidden">
+    <div class="gameover-content">
+      <h1 class="gameover-title">GAME OVER</h1>
+      <div class="gameover-stats">
+        <div class="stat-row">
+          <span class="stat-label">SCORE</span>
+          <span id="finalScore" class="stat-value">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">TIME</span>
+          <span id="survivalTime" class="stat-value">0s</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">DESTROYED</span>
+          <span id="destroyedCount" class="stat-value">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">MAX COMBO</span>
+          <span id="maxCombo" class="stat-value">0</span>
+        </div>
+      </div>
+      <div class="new-record hidden" id="newRecord">NEW RECORD!</div>
+      <button id="retryBtn" class="pixel-btn">RETRY</button>
+      <button id="menuBtn" class="pixel-btn secondary-btn">MENU</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
