@@ -6,7 +6,7 @@ import {
   PLAYER_Y, PLAYER_HEIGHT, GAME_HEIGHT
 } from './config.js';
 import { playGunShot, playHitSound, playDestroySound } from './audio.js';
-import { spawnHitParticles, spawnDamageText, spawnDestroyParticles } from './effects.js';
+import { spawnHitParticles, spawnDamageText, spawnDestroyParticles, spawnMuzzleFlash, spawnExtraExplosion, triggerScreenShake } from './effects.js';
 import { addScore, addCombo } from './score.js';
 import { tryDropItem } from './items.js';
 import { removeObstacleFromScene } from './obstacles.js';
@@ -41,6 +41,7 @@ function fireBullets(weapon) {
   const bulletY = PLAYER_Y + PLAYER_HEIGHT / 2 + 5;
 
   playGunShot(state.currentWeaponIndex);
+  spawnMuzzleFlash(playerX, bulletY);
 
   switch (weapon.type) {
     case 'single':
@@ -131,13 +132,26 @@ function updateBullets(dt) {
   }
 }
 
+function getDamageColor(damage, weaponLevel) {
+  if (damage >= 50) return 0xFF4444;
+  if (damage >= 30) return 0xFFAA00;
+  if (weaponLevel >= 7) return 0x00CCFF;
+  if (state.combo >= 20) return 0xFF44FF;
+  if (state.combo >= 10) return 0x00CCFF;
+  if (state.combo >= 5) return 0x00FF88;
+  return 0xFFFFFF;
+}
+
 export function hitObstacle(obs, bullet) {
   obs.hp -= bullet.damage;
   obs.flashTimer = 0.1;
+  obs.hitScale = 1.08;
 
   playHitSound(obs.materialType);
   spawnHitParticles(bullet.mesh.position.x, bullet.mesh.position.y, obs.materialType, obs.colorHex);
-  spawnDamageText(bullet.mesh.position.x, bullet.mesh.position.y + obs.height / 2, bullet.damage);
+
+  const dmgColor = getDamageColor(bullet.damage, bullet.weaponLevel);
+  spawnDamageText(bullet.mesh.position.x, bullet.mesh.position.y + obs.height / 2, bullet.damage, dmgColor);
 
   if (bullet.explosive && bullet.explosionRadius > 0) {
     for (const other of state.obstacles) {
@@ -148,7 +162,9 @@ export function hitObstacle(obs, bullet) {
       if (dist < bullet.explosionRadius) {
         other.hp -= bullet.damage * 0.5;
         other.flashTimer = 0.1;
-        spawnDamageText(other.mesh.position.x, other.mesh.position.y + other.height / 2, Math.floor(bullet.damage * 0.5));
+        other.hitScale = 1.05;
+        const splashColor = getDamageColor(Math.floor(bullet.damage * 0.5), bullet.weaponLevel);
+        spawnDamageText(other.mesh.position.x, other.mesh.position.y + other.height / 2, Math.floor(bullet.damage * 0.5), splashColor);
       }
     }
     spawnExplosionEffect(bullet.mesh.position.x, bullet.mesh.position.y);
@@ -164,6 +180,28 @@ export function destroyObstacle(obs) {
   spawnDestroyParticles(obs.mesh.position.x, obs.mesh.position.y, obs.width, obs.height, obs.colorHex, obs.materialType);
   playDestroySound(obs.materialType);
 
+  if (obs.level === 4) {
+    spawnExtraExplosion(obs.mesh.position.x, obs.mesh.position.y, 20, 0xFF6600);
+    triggerScreenShake(1.5);
+  } else if (obs.level === 8) {
+    spawnExtraExplosion(obs.mesh.position.x, obs.mesh.position.y, 25, 0xFF4400);
+    setTimeout(() => {
+      if (state.gameActive) spawnExtraExplosion(obs.mesh.position.x, obs.mesh.position.y + 5, 18, 0xFFAA00);
+    }, 80);
+    setTimeout(() => {
+      if (state.gameActive) spawnExtraExplosion(obs.mesh.position.x, obs.mesh.position.y - 5, 15, 0xFFCC44);
+    }, 160);
+    triggerScreenShake(2.5);
+  } else if (obs.level === 9) {
+    spawnExtraExplosion(obs.mesh.position.x, obs.mesh.position.y, 30, 0x88FF44);
+    triggerScreenShake(2.0);
+  } else if (obs.level === 10) {
+    spawnExtraExplosion(obs.mesh.position.x, obs.mesh.position.y, 35, 0x8888FF);
+    triggerScreenShake(3.0);
+  } else if (obs.level >= 6) {
+    triggerScreenShake(1.0);
+  }
+
   addScore(obs.score);
   addCombo();
   tryDropItem(obs.mesh.position.x, obs.mesh.position.y, obs.level);
@@ -177,7 +215,8 @@ function spawnExplosionEffect(x, y) {
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(x, y, 15);
   state.scene.add(mesh);
-  state.effects.push({ mesh, mat, type: 'explosion', timer: 0, duration: 0.3, startX: x, startY: y });
+  state.effects.push({ mesh, mat, type: 'explosion', timer: 0, duration: 0.3 });
+  triggerScreenShake(2.0);
 }
 
 export function removeBullet(index) {

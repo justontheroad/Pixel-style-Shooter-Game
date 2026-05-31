@@ -6,7 +6,7 @@ import {
   DEATH_LINE_Y
 } from './config.js';
 import { updateGunAppearance } from './player.js';
-import { spawnPickupParticles } from './effects.js';
+import { spawnPickupParticles, spawnItemSparkle } from './effects.js';
 import { playPickup } from './audio.js';
 
 export function tryDropItem(x, y, obstacleLevel) {
@@ -83,6 +83,8 @@ export function updateItems(dt) {
     const pulse = 0.5 + Math.sin(item.timer * 6) * 0.3;
     item.glowMat.opacity = pulse * 0.3;
     item.boxMat.opacity = 0.6 + pulse * 0.4;
+
+    spawnItemSparkle(item.group.position.x, item.group.position.y, item.timer);
 
     const dx = Math.abs(item.group.position.x - state.playerX);
     const dy = Math.abs(item.group.position.y - PLAYER_Y);

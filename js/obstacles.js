@@ -67,6 +67,7 @@ export function spawnObstacle() {
     channel,
     alive: true,
     flashTimer: 0,
+    hitScale: 1,
     originalColor: obsConfig.color,
   };
 
@@ -191,6 +192,11 @@ export function updateObstacles(dt) {
       obs.mesh.material.color.set(0xffffff);
     } else {
       obs.mesh.material.color.set(obs.originalColor);
+    }
+
+    if (obs.hitScale > 1) {
+      obs.hitScale = Math.max(1, obs.hitScale - dt * 4);
+      obs.mesh.scale.setScalar(obs.hitScale);
     }
 
     if (obs.mesh.position.y - obs.height / 2 <= DEATH_LINE_Y) {

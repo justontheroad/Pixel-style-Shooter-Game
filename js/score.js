@@ -1,5 +1,9 @@
 import { state } from './state.js';
-import { getComboMultiplier } from './config.js';
+import { getComboMultiplier, COMBO_THRESHOLDS } from './config.js';
+import { playComboSound } from './audio.js';
+import { spawnComboFlash } from './effects.js';
+
+const COMBO_MILESTONES = new Set(COMBO_THRESHOLDS.map(t => t.combo));
 
 export function addScore(baseScore) {
   const multiplier = getComboMultiplier(state.combo);
@@ -13,6 +17,11 @@ export function addCombo() {
     state.maxCombo = state.combo;
   }
   state.destroyedCount++;
+
+  if (COMBO_MILESTONES.has(state.combo)) {
+    playComboSound(state.combo);
+    spawnComboFlash(state.combo);
+  }
 }
 
 export function resetCombo() {

@@ -155,6 +155,43 @@ async function renderGameOverBuffer() {
   return await offline.startRendering();
 }
 
+async function renderComboBuffer(level) {
+  const totalDuration = 0.5;
+  const sampleRate = audioCtx.sampleRate;
+  const length = Math.ceil(totalDuration * sampleRate);
+  const offline = new OfflineAudioContext(1, length, sampleRate);
+
+  const configs = {
+    5:  { notes: [523.25, 659.25, 783.99], delays: [0, 0.08, 0.16] },
+    10: { notes: [523.25, 659.25, 783.99, 1046.5], delays: [0, 0.06, 0.12, 0.18] },
+    20: { notes: [659.25, 783.99, 987.77, 1318.5], delays: [0, 0.05, 0.10, 0.15] },
+    50: { notes: [783.99, 987.77, 1318.5, 1568.0, 2093.0], delays: [0, 0.04, 0.08, 0.12, 0.16] },
+  };
+  const cfg = configs[level] || configs[5];
+
+  for (let i = 0; i < cfg.notes.length; i++) {
+    const osc = offline.createOscillator();
+    const gain = offline.createGain();
+    osc.type = 'square';
+    osc.frequency.value = cfg.notes[i];
+    const t = cfg.delays[i];
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.2, t + 0.01);
+    gain.gain.linearRampToValueAtTime(0.15, t + 0.05);
+    gain.gain.linearRampToValueAtTime(0, t + 0.2);
+    const flt = offline.createBiquadFilter();
+    flt.type = 'lowpass';
+    flt.frequency.value = 2000;
+    osc.connect(flt);
+    flt.connect(gain);
+    gain.connect(offline.destination);
+    osc.start(t);
+    osc.stop(totalDuration);
+  }
+
+  return await offline.startRendering();
+}
+
 const GUN_AUDIO_CONFIGS = [
   { freq: 200, type: 'sine',     attack: 0.01, decay: 0.05, sustain: 0.4, duration: 0.08, release: 0.1 },
   { freq: 300, type: 'square',   attack: 0.005, decay: 0.03, sustain: 0.3, duration: 0.05, release: 0.08 },
@@ -213,6 +250,14 @@ async function prerenderBuffers() {
   promises.push(renderPickupBuffer().then(buf => bufferMap.set('pickup', buf)));
   promises.push(renderGameOverBuffer().then(buf => bufferMap.set('gameover', buf)));
 
+  for (const level of [5, 10, 20, 50]) {
+    const l = level;
+    promises.push(
+      renderComboBuffer(l)
+        .then(buf => bufferMap.set(`combo_${l}`, buf))
+    );
+  }
+
   await Promise.all(promises);
 }
 
@@ -269,4 +314,13 @@ export function playHitSound(materialType) { playFromBuffer(`hit_${materialType 
 export function playDestroySound(materialType) { playFromBuffer(`destroy_${materialType || 'stone'}`); }
 export function playPickup() { playFromBuffer('pickup'); }
 export function playGameOver() { playFromBuffer('gameover'); }
+export function playComboSound(combo) {
+  const levels = [5, 10, 20, 50];
+  for (let i = levels.length - 1; i >= 0; i--) {
+    if (combo === levels[i]) {
+      playFromBuffer(`combo_${levels[i]}`);
+      return;
+    }
+  }
+}
 export function toggleMute() { muted = !muted; if (masterGain) masterGain.gain.value = muted ? 0 : 0.6; return muted; }

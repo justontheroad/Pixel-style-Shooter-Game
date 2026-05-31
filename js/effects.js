@@ -75,7 +75,34 @@ export function spawnDestroyParticles(x, y, w, h, colorHex, materialType) {
   state.effects.push({ mesh: flashMesh, mat: flashMat, type: 'flash', timer: 0, duration: 0.15 });
 }
 
-export function spawnDamageText(x, y, damage) {
+export function spawnMuzzleFlash(x, y) {
+  if (state.effects.length >= MAX_EFFECTS) return;
+  const colors = [0xFF8800, 0xFFAA00, 0xFFCC44];
+  const count = state.isMobile ? 1 : 2;
+
+  for (let i = 0; i < count; i++) {
+    const size = 2 + Math.random() * 3;
+    const geo = new THREE.PlaneGeometry(size, size);
+    const mat = new THREE.MeshBasicMaterial({
+      color: colors[Math.floor(Math.random() * colors.length)],
+      transparent: true, opacity: 1.0
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x + (Math.random() - 0.5) * 4, y + Math.random() * 3, 11);
+    state.scene.add(mesh);
+
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
+    const speed = 20 + Math.random() * 30;
+    state.effects.push({
+      mesh, mat, type: 'particle',
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed + 15,
+      timer: 0, duration: 0.1 + Math.random() * 0.08,
+    });
+  }
+}
+
+export function spawnDamageText(x, y, damage, color) {
   if (state.damageTexts.length >= MAX_DAMAGE_TEXTS) return;
 
   const group = new THREE.Group();
@@ -97,7 +124,7 @@ export function spawnDamageText(x, y, damage) {
     '9': [[1,1,1],[1,0,1],[1,1,1],[0,0,1],[1,1,1]],
   };
 
-  const pixelMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 1.0 });
+  const pixelMat = new THREE.MeshBasicMaterial({ color: color || 0xFFFFFF, transparent: true, opacity: 1.0 });
 
   for (let d = 0; d < digitStr.length; d++) {
     const pattern = DIGITS[digitStr[d]];
@@ -145,6 +172,150 @@ export function spawnPickupParticles(x, y) {
   }
 }
 
+export function spawnItemSparkle(x, y, timer) {
+  if (state.effects.length >= MAX_EFFECTS) return;
+  if (Math.random() > 0.15) return;
+  const colors = [0xFFFF00, 0xFF88FF, 0x88FFFF, 0xFFFFFF];
+  const size = 1 + Math.random() * 2;
+  const geo = new THREE.PlaneGeometry(size, size);
+  const mat = new THREE.MeshBasicMaterial({
+    color: colors[Math.floor(Math.random() * colors.length)],
+    transparent: true, opacity: 0.8
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  const angle = Math.random() * Math.PI * 2;
+  const dist = 8 + Math.random() * 6;
+  mesh.position.set(x + Math.cos(angle) * dist, y + Math.sin(angle) * dist, 13);
+  state.scene.add(mesh);
+  state.effects.push({
+    mesh, mat, type: 'sparkle',
+    timer: 0, duration: 0.3 + Math.random() * 0.2,
+  });
+}
+
+export function spawnComboFlash(combo) {
+  if (state.effects.length >= MAX_EFFECTS - 3) return;
+  const colors = { 5: 0x00FF88, 10: 0x00CCFF, 20: 0xFF44FF, 50: 0xFFD700 };
+  const color = colors[combo] || 0xFFFFFF;
+
+  const flashGeo = new THREE.PlaneGeometry(240, 400);
+  const flashMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.15 });
+  const flashMesh = new THREE.Mesh(flashGeo, flashMat);
+  flashMesh.position.set(0, 0, 30);
+  state.scene.add(flashMesh);
+  state.effects.push({ mesh: flashMesh, mat: flashMat, type: 'comboflash', timer: 0, duration: 0.3 });
+
+  const textGroup = new THREE.Group();
+  const labels = { 5: 'NICE!', 10: 'GREAT!', 20: 'AMAZING!', 50: 'LEGENDARY!' };
+  const label = labels[combo] || 'COMBO!';
+  const labelColors = { 5: 0x00FF88, 10: 0x00CCFF, 20: 0xFF44FF, 50: 0xFFD700 };
+  const textColor = labelColors[combo] || 0xFFFFFF;
+
+  const DIGITS = {
+    'N': [[1,1,1],[1,0,1],[1,0,1],[1,0,1],[1,0,1]], 'I': [[1,1,1],[0,1,0],[0,1,0],[0,1,0],[1,1,1]],
+    'C': [[1,1,1],[1,0,0],[1,0,0],[1,0,0],[1,1,1]], 'E': [[1,1,1],[1,0,0],[1,1,1],[1,0,0],[1,1,1]],
+    '!': [[1],[1],[1],[0],[1]],
+    'G': [[1,1,1],[1,0,0],[1,0,1],[1,0,1],[1,1,1]], 'R': [[1,1,1],[1,0,1],[1,1,1],[1,0,1],[1,0,1]],
+    'A': [[1,1,1],[1,0,1],[1,1,1],[1,0,1],[1,0,1]], 'T': [[1,1,1],[0,1,0],[0,1,0],[0,1,0],[0,1,0]],
+    'M': [[1,0,0,0,1],[1,1,0,1,1],[1,0,1,0,1],[1,0,0,0,1],[1,0,0,0,1]],
+    'Z': [[1,1,1],[0,0,1],[1,1,1],[1,0,0],[1,1,1]],
+    'L': [[1,0],[1,0],[1,0],[1,0],[1,1]], 'D': [[1,1,0],[1,0,1],[1,0,1],[1,0,1],[1,1,0]],
+    'Y': [[1,0,1],[0,1,0],[0,1,0],[0,1,0],[0,1,0]],
+    'O': [[1,1,1],[1,0,1],[1,0,1],[1,0,1],[1,1,1]],
+  };
+
+  const charWidth = 3;
+  const gap = 1;
+  let totalW = 0;
+  for (let c = 0; c < label.length; c++) {
+    const ch = label[c];
+    const pattern = DIGITS[ch];
+    if (pattern) totalW += (pattern[0].length) + gap;
+  }
+  totalW -= gap;
+
+  let offsetX = -totalW / 2;
+  const pixelMat = new THREE.MeshBasicMaterial({ color: textColor, transparent: true, opacity: 1.0 });
+  for (let c = 0; c < label.length; c++) {
+    const ch = label[c];
+    const pattern = DIGITS[ch];
+    if (!pattern) continue;
+    const cols = pattern[0].length;
+    for (let row = 0; row < 5; row++) {
+      for (let col = 0; col < cols; col++) {
+        if (pattern[row][col]) {
+          const pixel = new THREE.Mesh(sharedPixelGeo, pixelMat.clone());
+          pixel.position.set(offsetX + col, -row + 2, 0);
+          textGroup.add(pixel);
+        }
+      }
+    }
+    offsetX += cols + gap;
+  }
+
+  textGroup.position.set(0, 40, 25);
+  textGroup.scale.setScalar(2);
+  state.scene.add(textGroup);
+  state.effects.push({ mesh: textGroup, mat: pixelMat, type: 'combotext', timer: 0, duration: 1.2 });
+}
+
+export function spawnExtraExplosion(x, y, size, color) {
+  if (state.effects.length >= MAX_EFFECTS - 3) return;
+  const count = state.isMobile ? 4 : 6;
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+    const pSize = 2 + Math.random() * (size / 3);
+    const geo = new THREE.PlaneGeometry(pSize, pSize);
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1.0 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y, 14);
+    state.scene.add(mesh);
+    const speed = 30 + Math.random() * 60;
+    state.effects.push({
+      mesh, mat, type: 'particle',
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed + 10,
+      timer: 0, duration: 0.3 + Math.random() * 0.2,
+    });
+  }
+  const ringGeo = new THREE.PlaneGeometry(size, size);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xFF8800, transparent: true, opacity: 0.6 });
+  const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+  ringMesh.position.set(x, y, 15);
+  state.scene.add(ringMesh);
+  state.effects.push({ mesh: ringMesh, mat: ringMat, type: 'flash', timer: 0, duration: 0.2 });
+}
+
+let shakeIntensity = 0;
+let shakeTimer = 0;
+const SHAKE_DURATION = 0.15;
+
+export function triggerScreenShake(intensity) {
+  shakeIntensity = Math.max(shakeIntensity, intensity);
+  shakeTimer = SHAKE_DURATION;
+}
+
+function updateScreenShake(dt) {
+  if (shakeTimer > 0) {
+    shakeTimer -= dt;
+    if (shakeTimer <= 0) {
+      shakeIntensity = 0;
+      if (state.camera) {
+        state.camera.position.x = 0;
+        state.camera.position.y = 0;
+      }
+    } else {
+      const progress = shakeTimer / SHAKE_DURATION;
+      const offsetX = (Math.random() - 0.5) * 2 * shakeIntensity * progress;
+      const offsetY = (Math.random() - 0.5) * 2 * shakeIntensity * progress;
+      if (state.camera) {
+        state.camera.position.x = offsetX;
+        state.camera.position.y = offsetY;
+      }
+    }
+  }
+}
+
 function disposeMeshDeep(obj) {
   if (obj.geometry) obj.geometry.dispose();
   if (obj.material) {
@@ -160,6 +331,8 @@ function disposeMeshDeep(obj) {
 }
 
 export function updateEffects(dt) {
+  updateScreenShake(dt);
+
   for (let i = state.effects.length - 1; i >= 0; i--) {
     const fx = state.effects[i];
     fx.timer += dt;
@@ -170,6 +343,9 @@ export function updateEffects(dt) {
       fx.mesh.position.y += fx.vy * dt;
       fx.vy -= 80 * dt;
       fx.mat.opacity = Math.max(0, 1 - progress);
+    } else if (fx.type === 'sparkle') {
+      fx.mat.opacity = Math.max(0, 0.8 * (1 - progress));
+      fx.mesh.scale.setScalar(1 + progress * 0.5);
     } else if (fx.type === 'flash') {
       fx.mat.opacity = Math.max(0, 0.8 * (1 - progress));
       const scale = 1 + progress * 2;
@@ -186,12 +362,21 @@ export function updateEffects(dt) {
           child.material.opacity = Math.max(0, child.material.opacity * 0.98);
         }
       });
+    } else if (fx.type === 'comboflash') {
+      fx.mat.opacity = Math.max(0, 0.15 * (1 - progress));
+    } else if (fx.type === 'combotext') {
+      fx.mesh.position.y += 10 * dt;
+      const scale = 2 + progress * 0.5;
+      fx.mesh.scale.setScalar(scale);
+      fx.mesh.children.forEach(child => {
+        if (child.material) child.material.opacity = Math.max(0, 1 - progress);
+      });
     }
 
     if (fx.timer >= fx.duration) {
       state.scene.remove(fx.mesh);
       disposeMeshDeep(fx.mesh);
-      fx.mat.dispose();
+      if (fx.mat && fx.mat !== sharedPixelGeo) fx.mat.dispose();
       state.effects.splice(i, 1);
     }
   }
@@ -227,4 +412,11 @@ export function resetEffects() {
     disposeMeshDeep(dtObj.group);
   }
   state.damageTexts.length = 0;
+
+  shakeIntensity = 0;
+  shakeTimer = 0;
+  if (state.camera) {
+    state.camera.position.x = 0;
+    state.camera.position.y = 0;
+  }
 }
