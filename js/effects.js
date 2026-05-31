@@ -9,9 +9,15 @@ const PARTICLE_COLORS = {
   energy: [0x00FFFF, 0x00CCFF, 0x88FFFF],
 };
 
+const MAX_EFFECTS = 80;
+const MAX_DAMAGE_TEXTS = 20;
+
+const sharedPixelGeo = new THREE.PlaneGeometry(1, 1);
+
 export function spawnHitParticles(x, y, materialType, colorHex) {
+  if (state.effects.length >= MAX_EFFECTS) return;
   const colors = PARTICLE_COLORS[materialType] || [colorHex, 0xFFFFFF, 0xFFFF00];
-  const count = state.isMobile ? 3 : 5;
+  const count = state.isMobile ? 2 : 3;
 
   for (let i = 0; i < count; i++) {
     const size = 1 + Math.random() * 2;
@@ -36,8 +42,9 @@ export function spawnHitParticles(x, y, materialType, colorHex) {
 }
 
 export function spawnDestroyParticles(x, y, w, h, colorHex, materialType) {
+  if (state.effects.length >= MAX_EFFECTS - 5) return;
   const colors = PARTICLE_COLORS[materialType] || [colorHex];
-  const count = state.isMobile ? 8 : 15;
+  const count = state.isMobile ? 6 : 10;
 
   for (let i = 0; i < count; i++) {
     const size = 2 + Math.random() * 4;
@@ -69,6 +76,8 @@ export function spawnDestroyParticles(x, y, w, h, colorHex, materialType) {
 }
 
 export function spawnDamageText(x, y, damage) {
+  if (state.damageTexts.length >= MAX_DAMAGE_TEXTS) return;
+
   const group = new THREE.Group();
   const digitStr = String(damage);
   const digitWidth = 3;
@@ -88,7 +97,6 @@ export function spawnDamageText(x, y, damage) {
     '9': [[1,1,1],[1,0,1],[1,1,1],[0,0,1],[1,1,1]],
   };
 
-  const pixelGeo = new THREE.PlaneGeometry(1, 1);
   const pixelMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 1.0 });
 
   for (let d = 0; d < digitStr.length; d++) {
@@ -97,7 +105,7 @@ export function spawnDamageText(x, y, damage) {
     for (let row = 0; row < 5; row++) {
       for (let col = 0; col < 3; col++) {
         if (pattern[row][col]) {
-          const pixel = new THREE.Mesh(pixelGeo, pixelMat);
+          const pixel = new THREE.Mesh(sharedPixelGeo, pixelMat.clone());
           pixel.position.set(offsetX + col, -row + 2, 0);
           group.add(pixel);
         }
@@ -117,7 +125,8 @@ export function spawnDamageText(x, y, damage) {
 }
 
 export function spawnPickupParticles(x, y) {
-  const count = state.isMobile ? 4 : 8;
+  if (state.effects.length >= MAX_EFFECTS - 4) return;
+  const count = state.isMobile ? 3 : 6;
   for (let i = 0; i < count; i++) {
     const angle = (i / count) * Math.PI * 2;
     const size = 2 + Math.random() * 2;
@@ -136,6 +145,20 @@ export function spawnPickupParticles(x, y) {
   }
 }
 
+function disposeMeshDeep(obj) {
+  if (obj.geometry) obj.geometry.dispose();
+  if (obj.material) {
+    if (Array.isArray(obj.material)) {
+      obj.material.forEach(m => m.dispose());
+    } else {
+      obj.material.dispose();
+    }
+  }
+  if (obj.children) {
+    obj.children.forEach(child => disposeMeshDeep(child));
+  }
+}
+
 export function updateEffects(dt) {
   for (let i = state.effects.length - 1; i >= 0; i--) {
     const fx = state.effects[i];
@@ -146,20 +169,28 @@ export function updateEffects(dt) {
       fx.mesh.position.x += fx.vx * dt;
       fx.mesh.position.y += fx.vy * dt;
       fx.vy -= 80 * dt;
-      fx.mat.opacity = 1 - progress;
+      fx.mat.opacity = Math.max(0, 1 - progress);
     } else if (fx.type === 'flash') {
-      fx.mat.opacity = 0.8 * (1 - progress);
+      fx.mat.opacity = Math.max(0, 0.8 * (1 - progress));
       const scale = 1 + progress * 2;
       fx.mesh.scale.setScalar(scale);
     } else if (fx.type === 'explosion') {
-      fx.mat.opacity = 0.8 * (1 - progress);
+      fx.mat.opacity = Math.max(0, 0.8 * (1 - progress));
       const scale = 1 + progress * 4;
       fx.mesh.scale.setScalar(scale);
+    } else if (fx.type === 'popup') {
+      fx.mesh.position.y += 15 * dt;
+      fx.mat.opacity = Math.max(0, 0.7 * (1 - progress));
+      fx.mesh.children.forEach(child => {
+        if (child.material && child.material !== fx.mat) {
+          child.material.opacity = Math.max(0, child.material.opacity * 0.98);
+        }
+      });
     }
 
     if (fx.timer >= fx.duration) {
       state.scene.remove(fx.mesh);
-      fx.mesh.geometry.dispose();
+      disposeMeshDeep(fx.mesh);
       fx.mat.dispose();
       state.effects.splice(i, 1);
     }
@@ -172,15 +203,12 @@ export function updateEffects(dt) {
     const progress = dtObj.timer / dtObj.duration;
 
     dtObj.group.children.forEach(child => {
-      if (child.material) child.material.opacity = 1 - progress;
+      if (child.material) child.material.opacity = Math.max(0, 1 - progress);
     });
 
     if (dtObj.timer >= dtObj.duration) {
       state.scene.remove(dtObj.group);
-      dtObj.group.children.forEach(child => {
-        if (child.geometry) child.geometry.dispose();
-        if (child.material) child.material.dispose();
-      });
+      disposeMeshDeep(dtObj.group);
       state.damageTexts.splice(i, 1);
     }
   }
@@ -189,17 +217,14 @@ export function updateEffects(dt) {
 export function resetEffects() {
   for (const fx of state.effects) {
     state.scene.remove(fx.mesh);
-    fx.mesh.geometry.dispose();
+    disposeMeshDeep(fx.mesh);
     fx.mat.dispose();
   }
   state.effects.length = 0;
 
   for (const dtObj of state.damageTexts) {
     state.scene.remove(dtObj.group);
-    dtObj.group.children.forEach(child => {
-      if (child.geometry) child.geometry.dispose();
-      if (child.material) child.material.dispose();
-    });
+    disposeMeshDeep(dtObj.group);
   }
   state.damageTexts.length = 0;
 }

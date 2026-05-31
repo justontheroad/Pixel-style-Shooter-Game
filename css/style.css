@@ -314,6 +314,14 @@ html, body {
   text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
 }
 
+.weapons-list {
+  font-size: 6px;
+  max-width: 200px;
+  text-align: right;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
 .new-record {
   font-size: 10px;
   color: #ffcc00;

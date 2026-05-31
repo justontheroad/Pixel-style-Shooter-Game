@@ -7,11 +7,18 @@ import {
 } from './config.js';
 import { playGunShot, playHitSound, playDestroySound } from './audio.js';
 import { spawnHitParticles, spawnDamageText, spawnDestroyParticles } from './effects.js';
+import { addScore, addCombo } from './score.js';
+import { tryDropItem } from './items.js';
+import { removeObstacleFromScene } from './obstacles.js';
 
 export function updateWeapons(dt) {
   if (!state.gameActive) return;
 
   const weapon = WEAPONS[state.currentWeaponIndex];
+
+  if (weapon.type !== 'beam' && beamMesh) {
+    cleanupBeam();
+  }
 
   if (weapon.type === 'beam') {
     updateBeam(dt, weapon);
@@ -157,15 +164,11 @@ export function destroyObstacle(obs) {
   spawnDestroyParticles(obs.mesh.position.x, obs.mesh.position.y, obs.width, obs.height, obs.colorHex, obs.materialType);
   playDestroySound(obs.materialType);
 
-  const baseScore = obs.score;
-  import('./score.js').then(m => m.addScore(baseScore));
-  import('./score.js').then(m => m.addCombo());
+  addScore(obs.score);
+  addCombo();
+  tryDropItem(obs.mesh.position.x, obs.mesh.position.y, obs.level);
 
-  import('./items.js').then(m => m.tryDropItem(obs.mesh.position.x, obs.mesh.position.y, obs.level));
-
-  state.scene.remove(obs.mesh);
-  if (obs.hpBar) state.scene.remove(obs.hpBar);
-  if (obs.hpBarBg) state.scene.remove(obs.hpBarBg);
+  removeObstacleFromScene(obs);
 }
 
 function spawnExplosionEffect(x, y) {
@@ -218,7 +221,7 @@ function updateBeam(dt, weapon) {
     }
   }
 
-  if (Math.random() < 0.3) {
+  if (Math.random() < 0.1) {
     const py = beamY + Math.random() * beamHeight;
     spawnHitParticles(playerX, py, 'energy', weapon.bulletColor);
   }

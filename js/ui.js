@@ -65,6 +65,9 @@ export function showGameOver() {
   document.getElementById('destroyedCount').textContent = state.destroyedCount;
   document.getElementById('maxCombo').textContent = state.maxCombo;
 
+  const weaponsList = Array.from(state.weaponsUsed).map(idx => WEAPONS[idx]?.name || '').filter(Boolean).join(' → ');
+  document.getElementById('weaponsUsed').textContent = weaponsList || '左轮手枪';
+
   if (state.score > state.highScore) {
     state.highScore = state.score;
     saveHighScore();

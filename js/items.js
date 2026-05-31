@@ -6,7 +6,8 @@ import {
   DEATH_LINE_Y
 } from './config.js';
 import { updateGunAppearance } from './player.js';
-import { cleanupBeam } from './weapons.js';
+import { spawnPickupParticles } from './effects.js';
+import { playPickup } from './audio.js';
 
 export function tryDropItem(x, y, obstacleLevel) {
   const stage = state.currentStage;
@@ -40,16 +41,17 @@ function createItem(x, y, weaponLevel) {
   glow.position.z = 7;
   group.add(glow);
 
-  const numColor = 0xffffff;
-  const numSize = 2;
-  const numY = 0;
-  const dotGeo = new THREE.PlaneGeometry(numSize, numSize);
-  const dotMat = new THREE.MeshBasicMaterial({ color: numColor });
-  for (let i = 0; i < Math.min(weaponLevel + 1, 5); i++) {
-    const dot = new THREE.Mesh(dotGeo, dotMat);
-    dot.position.set(-4 + i * 2, numY, 9);
-    group.add(dot);
-  }
+  const lvlGeo = new THREE.PlaneGeometry(12, 4);
+  const lvlMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.5 });
+  const lvlBg = new THREE.Mesh(lvlGeo, lvlMat);
+  lvlBg.position.set(0, -4, 9);
+  group.add(lvlBg);
+
+  const indicatorGeo = new THREE.PlaneGeometry(weaponLevel + 1, 2);
+  const indicatorMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+  const indicator = new THREE.Mesh(indicatorGeo, indicatorMat);
+  indicator.position.set(0, -4, 10);
+  group.add(indicator);
 
   group.position.set(x, y, 0);
   state.scene.add(group);
@@ -103,16 +105,35 @@ export function updateItems(dt) {
 function pickupItem(item) {
   const weaponLevel = item.weaponLevel;
   if (weaponLevel > state.currentWeaponIndex) {
-    if (WEAPONS[state.currentWeaponIndex].type === 'beam') {
-      cleanupBeam();
-    }
     state.currentWeaponIndex = weaponLevel;
     updateGunAppearance();
     state.weaponsUsed.add(weaponLevel);
-
-    import('./effects.js').then(m => m.spawnPickupParticles(state.playerX, PLAYER_Y));
-    import('./audio.js').then(m => m.playPickup());
+    spawnPickupParticles(state.playerX, PLAYER_Y);
+    playPickup();
+    showWeaponPopup(WEAPONS[weaponLevel].name, weaponLevel);
   }
+}
+
+function showWeaponPopup(name, level) {
+  const weapon = WEAPONS[level];
+  const group = new THREE.Group();
+
+  const bgGeo = new THREE.PlaneGeometry(60, 12);
+  const bgMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.7 });
+  const bg = new THREE.Mesh(bgGeo, bgMat);
+  bg.position.z = 25;
+  group.add(bg);
+
+  const borderGeo = new THREE.PlaneGeometry(62, 14);
+  const borderMat = new THREE.MeshBasicMaterial({ color: weapon.bulletColor, transparent: true, opacity: 0.5 });
+  const border = new THREE.Mesh(borderGeo, borderMat);
+  border.position.z = 24;
+  group.add(border);
+
+  group.position.set(state.playerX, PLAYER_Y + 30, 0);
+  state.scene.add(group);
+
+  state.effects.push({ mesh: group, mat: bgMat, type: 'popup', timer: 0, duration: 1.5 });
 }
 
 export function resetItems() {
