@@ -18,8 +18,21 @@ export const state = {
   bullets: [],
   obstacles: [],
   items: [],
+  powerups: [],
   effects: [],
   damageTexts: [],
+
+  shieldActive: false,
+  shieldTimer: 0,
+  shieldMesh: null,
+
+  slowTimeActive: false,
+  slowTimeTimer: 0,
+
+  doubleScoreActive: false,
+  doubleScoreTimer: 0,
+
+  clearPending: false,
 
   score: 0,
   combo: 0,

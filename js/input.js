@@ -2,28 +2,29 @@ import { state } from './state.js';
 import { switchChannel } from './player.js';
 
 export function initInput() {
+  const canvas = state.renderer ? state.renderer.domElement : null;
+
   document.addEventListener('click', (e) => {
     if (!state.gameActive) return;
-    if (e.target.closest('#startScreen') || e.target.closest('#gameOverScreen')) return;
+    if (e.target.closest('#start-overlay') || e.target.closest('#gameover-overlay')) return;
+    if (e.target.closest('.mute-btn')) return;
     switchChannel();
   });
 
-  const canvas = state.renderer ? state.renderer.domElement : null;
-
-  const handleTouch = (e) => {
-    if (!state.gameActive) return;
-    e.preventDefault();
-    switchChannel();
-  };
-
   if (canvas) {
-    canvas.addEventListener('touchstart', handleTouch, { passive: false });
+    canvas.addEventListener('touchstart', (e) => {
+      if (!state.gameActive) return;
+      e.preventDefault();
+      switchChannel();
+    }, { passive: false });
   }
 
   document.addEventListener('touchstart', (e) => {
     if (!state.gameActive) return;
-    if (e.target.closest('#startScreen') || e.target.closest('#gameOverScreen')) return;
+    if (e.target.closest('#start-overlay') || e.target.closest('#gameover-overlay')) return;
+    if (e.target.closest('.mute-btn')) return;
     if (canvas && e.target === canvas) return;
+    e.preventDefault();
     switchChannel();
   }, { passive: false });
 

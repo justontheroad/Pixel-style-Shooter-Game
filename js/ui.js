@@ -1,114 +1,97 @@
 import { state } from './state.js';
-import { WEAPONS, getComboMultiplier } from './config.js';
-import { toggleMute } from './audio.js';
-
-let startGameCallback = null;
-
-export function setStartGameCallback(cb) { startGameCallback = cb; }
-
-function startGameFromUI() {
-  if (startGameCallback) startGameCallback();
-}
-
-function show(el) {
-  if (el) { el.classList.remove('hidden'); el.style.display = ''; }
-}
-function hide(el) {
-  if (el) { el.classList.add('hidden'); }
-}
+import { WEAPONS, POWERUPS, getComboMultiplier } from './config.js';
 
 export function initUI() {
-  document.getElementById('startBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    startGameFromUI();
-  });
-
-  document.getElementById('retryBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    startGameFromUI();
-  });
-  document.getElementById('menuBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    showStartScreen();
-  });
-
-  document.getElementById('muteBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    const m = toggleMute();
-    document.getElementById('muteBtn').textContent = m ? '🔇' : '🔊';
-  });
-
-  loadHighScore();
-  showStartScreen();
 }
 
-export function showStartScreen() {
-  show(document.getElementById('startScreen'));
-  hide(document.getElementById('hudOverlay'));
-  hide(document.getElementById('gameOverScreen'));
-  document.getElementById('highScoreDisplay').textContent = state.highScore;
-}
+function show(el) { if (el) el.classList.remove('hidden'); }
+function hide(el) { if (el) el.classList.add('hidden'); }
 
 export function showHUD() {
-  hide(document.getElementById('startScreen'));
-  show(document.getElementById('hudOverlay'));
-  hide(document.getElementById('gameOverScreen'));
+  const hud = document.getElementById('hud');
+  show(hud);
 }
 
-export function showGameOver() {
-  hide(document.getElementById('startScreen'));
-  hide(document.getElementById('hudOverlay'));
-  show(document.getElementById('gameOverScreen'));
-
-  document.getElementById('finalScore').textContent = state.score;
-  document.getElementById('survivalTime').textContent = state.survivalTime.toFixed(1) + 's';
-  document.getElementById('destroyedCount').textContent = state.destroyedCount;
-  document.getElementById('maxCombo').textContent = state.maxCombo;
-
-  const weaponsList = Array.from(state.weaponsUsed).map(idx => WEAPONS[idx]?.name || '').filter(Boolean).join(' → ');
-  document.getElementById('weaponsUsed').textContent = weaponsList || '左轮手枪';
-
-  if (state.score > state.highScore) {
-    state.highScore = state.score;
-    saveHighScore();
-    show(document.getElementById('newRecord'));
-  } else {
-    hide(document.getElementById('newRecord'));
-  }
+export function hideHUD() {
+  const hud = document.getElementById('hud');
+  hide(hud);
 }
 
 export function updateHUD() {
-  const weapon = WEAPONS[state.currentWeaponIndex];
-  document.getElementById('weaponName').textContent = weapon.name;
-  document.getElementById('weaponLevel').textContent = 'Lv.' + weapon.level;
-  document.getElementById('scoreDisplay').textContent = state.score;
+  const scoreEl = document.getElementById('score');
+  const comboEl = document.getElementById('combo');
+  const weaponEl = document.getElementById('weapon');
+  const timeEl = document.getElementById('time');
+  const stageEl = document.getElementById('stage');
+  const powerupEl = document.getElementById('powerup-status');
 
-  const comboEl = document.getElementById('comboDisplay');
-  const comboMultEl = document.getElementById('comboMult');
-  if (state.combo >= 5) {
-    comboEl.classList.add('active');
-    comboEl.textContent = 'x' + state.combo;
+  if (scoreEl) scoreEl.textContent = state.score;
+  if (comboEl) {
     const mult = getComboMultiplier(state.combo);
-    if (mult > 1) {
-      comboMultEl.classList.add('active');
-      comboMultEl.textContent = mult + 'x';
-    } else {
-      comboMultEl.classList.remove('active');
-    }
-  } else {
-    comboEl.classList.remove('active');
-    comboMultEl.classList.remove('active');
+    comboEl.textContent = state.combo > 0 ? `${state.combo} COMBO x${mult}` : '';
+  }
+  if (weaponEl) {
+    const weapon = WEAPONS[state.currentWeaponIndex];
+    weaponEl.textContent = weapon.name;
+  }
+  if (timeEl) timeEl.textContent = state.survivalTime.toFixed(1) + 's';
+  if (stageEl && state.currentStage) stageEl.textContent = state.currentStage.name;
+
+  if (powerupEl) {
+    let parts = [];
+    if (state.shieldActive) parts.push(`🛡${state.shieldTimer.toFixed(1)}s`);
+    if (state.slowTimeActive) parts.push(`⏳${state.slowTimeTimer.toFixed(1)}s`);
+    if (state.doubleScoreActive) parts.push(`×2 ${state.doubleScoreTimer.toFixed(1)}s`);
+    powerupEl.textContent = parts.join(' ');
   }
 }
 
-function loadHighScore() {
-  try {
-    state.highScore = parseInt(localStorage.getItem('pixelShooter_highScore')) || 0;
-  } catch(e) { state.highScore = 0; }
+export function showGameOver() {
+  const overlay = document.getElementById('gameover-overlay');
+  const finalScore = document.getElementById('final-score');
+  const finalTime = document.getElementById('final-time');
+  const finalCombo = document.getElementById('final-combo');
+  const finalDestroyed = document.getElementById('final-destroyed');
+  const highScoreEl = document.getElementById('high-score');
+  const newRecordEl = document.getElementById('new-record');
+  const weaponsList = document.getElementById('weapons-list');
+
+  if (finalScore) finalScore.textContent = state.score;
+  if (finalTime) finalTime.textContent = state.survivalTime.toFixed(1) + 's';
+  if (finalCombo) finalCombo.textContent = state.maxCombo;
+  if (finalDestroyed) finalDestroyed.textContent = state.destroyedCount;
+
+  if (highScoreEl) highScoreEl.textContent = state.highScore;
+  if (newRecordEl) {
+    if (state.score >= state.highScore && state.score > 0) {
+      show(newRecordEl);
+    } else {
+      hide(newRecordEl);
+    }
+  }
+
+  if (weaponsList) {
+    const names = [];
+    for (const idx of state.weaponsUsed) {
+      if (WEAPONS[idx]) names.push(WEAPONS[idx].name);
+    }
+    weaponsList.textContent = names.join(' → ');
+  }
+
+  show(overlay);
 }
 
-function saveHighScore() {
-  try {
-    localStorage.setItem('pixelShooter_highScore', state.highScore);
-  } catch(e) {}
+export function hideGameOver() {
+  const overlay = document.getElementById('gameover-overlay');
+  hide(overlay);
+}
+
+export function showStartScreen() {
+  const overlay = document.getElementById('start-overlay');
+  show(overlay);
+}
+
+export function hideStartScreen() {
+  const overlay = document.getElementById('start-overlay');
+  hide(overlay);
 }

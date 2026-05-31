@@ -1,7 +1,7 @@
-import { initScene, updateScene } from './scene.js';
+import { initScene } from './scene.js';
 import { initPlayer } from './player.js';
 import { initInput } from './input.js';
-import { initGame } from './game.js';
+import { initGame, loadHighScore } from './game.js';
 import { initUI } from './ui.js';
 import { state } from './state.js';
 
@@ -10,6 +10,7 @@ initPlayer();
 initInput();
 initUI();
 initGame();
+loadHighScore();
 
 window.addEventListener('resize', () => {
   if (state.camera && state.renderer) {

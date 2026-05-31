@@ -7,7 +7,8 @@ const COMBO_MILESTONES = new Set(COMBO_THRESHOLDS.map(t => t.combo));
 
 export function addScore(baseScore) {
   const multiplier = getComboMultiplier(state.combo);
-  const finalScore = Math.floor(baseScore * multiplier);
+  let finalScore = Math.floor(baseScore * multiplier);
+  if (state.doubleScoreActive) finalScore *= 2;
   state.score += finalScore;
 }
 

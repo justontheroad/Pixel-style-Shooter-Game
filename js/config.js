@@ -17,6 +17,15 @@ export const MAX_BULLETS = 30;
 
 export const OBSTACLE_MIN_GAP = 40;
 
+export const POWERUPS = [
+  { type: 'shield',   name: '护盾',     color: 0x44AAFF, duration: 8,  icon: 'S' },
+  { type: 'slowtime', name: '减速时钟', color: 0xFFAA00, duration: 6,  icon: 'T' },
+  { type: 'double',   name: '双倍积分', color: 0xFF44FF, duration: 10, icon: 'x2' },
+  { type: 'clear',    name: '全屏清除', color: 0xFF4444, duration: 0,  icon: 'C' },
+];
+
+export const POWERUP_DROP_RATE = 0.04;
+
 export const WEAPONS = [
   { level: 1,  name: '左轮手枪', damage: 10,   fireRate: 2.5,  type: 'single',    bulletSize: 3,  bulletColor: 0xffcc00, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
   { level: 2,  name: '手枪',     damage: 12,   fireRate: 3.0,  type: 'single',    bulletSize: 3,  bulletColor: 0xffcc00, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },

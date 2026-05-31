@@ -161,6 +161,7 @@ export function updateObstacles(dt) {
   for (let i = state.obstacles.length - 1; i >= 0; i--) {
     const obs = state.obstacles[i];
     if (!obs.alive) {
+      removeObstacleFromScene(obs);
       state.obstacles.splice(i, 1);
       continue;
     }
@@ -200,6 +201,11 @@ export function updateObstacles(dt) {
     }
 
     if (obs.mesh.position.y - obs.height / 2 <= DEATH_LINE_Y) {
+      if (state.shieldActive) {
+        obs.alive = false;
+        obs.shieldBlocked = true;
+        continue;
+      }
       resetCombo();
       obs.alive = false;
       removeObstacleFromScene(obs);
@@ -210,6 +216,11 @@ export function updateObstacles(dt) {
     const dx = Math.abs(obs.mesh.position.x - state.playerX);
     const dy = Math.abs(obs.mesh.position.y - PLAYER_Y);
     if (dx < (obs.width / 2 + PLAYER_WIDTH / 2) && dy < (obs.height / 2 + PLAYER_HEIGHT / 2)) {
+      if (state.shieldActive) {
+        obs.alive = false;
+        obs.shieldBlocked = true;
+        continue;
+      }
       obs.alive = false;
       removeObstacleFromScene(obs);
       state.obstacles.splice(i, 1);

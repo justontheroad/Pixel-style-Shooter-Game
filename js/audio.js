@@ -1,5 +1,6 @@
 let audioCtx = null;
 let masterGain = null;
+let bgmGain = null;
 let muted = false;
 const bufferMap = new Map();
 const activePool = new Map();
@@ -7,6 +8,11 @@ let nextVoiceId = 0;
 const MAX_CONCURRENT = 4;
 const MIN_INTERVAL = 40;
 let lastPlayTime = 0;
+
+let bgmSource = null;
+let bgmBuffer = null;
+let bgmPlaying = false;
+let bgmPlaybackRate = 1.0;
 
 function applyADSR(gain, t, peak, attack, decay, sustain, duration, release) {
   const sustainGain = peak * sustain;
@@ -130,6 +136,32 @@ async function renderPickupBuffer() {
   return await offline.startRendering();
 }
 
+async function renderPowerupBuffer() {
+  const totalDuration = 0.4;
+  const sampleRate = audioCtx.sampleRate;
+  const length = Math.ceil(totalDuration * sampleRate);
+  const offline = new OfflineAudioContext(1, length, sampleRate);
+
+  const notes = [523.25, 659.25, 783.99, 1046.5];
+  const delays = [0, 0.06, 0.12, 0.18];
+  for (let i = 0; i < notes.length; i++) {
+    const osc = offline.createOscillator();
+    const gain = offline.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = notes[i];
+    const t = delays[i];
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.2, t + 0.01);
+    gain.gain.linearRampToValueAtTime(0, t + 0.15);
+    osc.connect(gain);
+    gain.connect(offline.destination);
+    osc.start(t);
+    osc.stop(totalDuration);
+  }
+
+  return await offline.startRendering();
+}
+
 async function renderGameOverBuffer() {
   const totalDuration = 0.8;
   const sampleRate = audioCtx.sampleRate;
@@ -192,6 +224,90 @@ async function renderComboBuffer(level) {
   return await offline.startRendering();
 }
 
+async function renderBgmBuffer() {
+  const bpm = 120;
+  const beatDur = 60 / bpm;
+  const barDur = beatDur * 4;
+  const bars = 4;
+  const totalDuration = barDur * bars;
+  const sampleRate = audioCtx.sampleRate;
+  const length = Math.ceil(totalDuration * sampleRate);
+  const offline = new OfflineAudioContext(1, length, sampleRate);
+
+  const bassNotes = [
+    [65.41, 65.41, 82.41, 82.41],
+    [73.42, 73.42, 87.31, 87.31],
+    [98.00, 98.00, 82.41, 82.41],
+    [87.31, 87.31, 65.41, 65.41],
+  ];
+
+  const melodyNotes = [
+    [261.63, 329.63, 392.00, 329.63],
+    [293.66, 349.23, 440.00, 349.23],
+    [392.00, 440.00, 523.25, 440.00],
+    [349.23, 293.66, 261.63, 293.66],
+  ];
+
+  for (let bar = 0; bar < bars; bar++) {
+    for (let beat = 0; beat < 4; beat++) {
+      const t = bar * barDur + beat * beatDur;
+
+      const bassOsc = offline.createOscillator();
+      const bassGain = offline.createGain();
+      bassOsc.type = 'triangle';
+      bassOsc.frequency.value = bassNotes[bar][beat];
+      bassGain.gain.setValueAtTime(0.12, t);
+      bassGain.gain.linearRampToValueAtTime(0, t + beatDur * 0.8);
+      const bassFlt = offline.createBiquadFilter();
+      bassFlt.type = 'lowpass';
+      bassFlt.frequency.value = 300;
+      bassOsc.connect(bassFlt);
+      bassFlt.connect(bassGain);
+      bassGain.connect(offline.destination);
+      bassOsc.start(t);
+      bassOsc.stop(t + beatDur);
+
+      const melOsc = offline.createOscillator();
+      const melGain = offline.createGain();
+      melOsc.type = 'square';
+      melOsc.frequency.value = melodyNotes[bar][beat];
+      melGain.gain.setValueAtTime(0, t);
+      melGain.gain.linearRampToValueAtTime(0.06, t + 0.01);
+      melGain.gain.setValueAtTime(0.06, t + beatDur * 0.3);
+      melGain.gain.linearRampToValueAtTime(0, t + beatDur * 0.5);
+      const melFlt = offline.createBiquadFilter();
+      melFlt.type = 'lowpass';
+      melFlt.frequency.value = 1500;
+      melOsc.connect(melFlt);
+      melFlt.connect(melGain);
+      melGain.connect(offline.destination);
+      melOsc.start(t);
+      melOsc.stop(t + beatDur);
+
+      if (beat % 2 === 0) {
+        const drumLen = Math.ceil(0.08 * sampleRate);
+        const drumBuf = offline.createBuffer(1, drumLen, sampleRate);
+        const drumData = drumBuf.getChannelData(0);
+        for (let s = 0; s < drumLen; s++) drumData[s] = (Math.random() * 2 - 1) * (1 - s / drumLen);
+        const drumSrc = offline.createBufferSource();
+        drumSrc.buffer = drumBuf;
+        const drumGain = offline.createGain();
+        drumGain.gain.setValueAtTime(0.08, t);
+        drumGain.gain.linearRampToValueAtTime(0, t + 0.08);
+        const drumFlt = offline.createBiquadFilter();
+        drumFlt.type = 'highpass';
+        drumFlt.frequency.value = 2000;
+        drumSrc.connect(drumFlt);
+        drumFlt.connect(drumGain);
+        drumGain.connect(offline.destination);
+        drumSrc.start(t);
+      }
+    }
+  }
+
+  return await offline.startRendering();
+}
+
 const GUN_AUDIO_CONFIGS = [
   { freq: 200, type: 'sine',     attack: 0.01, decay: 0.05, sustain: 0.4, duration: 0.08, release: 0.1 },
   { freq: 300, type: 'square',   attack: 0.005, decay: 0.03, sustain: 0.3, duration: 0.05, release: 0.08 },
@@ -248,6 +364,7 @@ async function prerenderBuffers() {
   }
 
   promises.push(renderPickupBuffer().then(buf => bufferMap.set('pickup', buf)));
+  promises.push(renderPowerupBuffer().then(buf => bufferMap.set('powerup', buf)));
   promises.push(renderGameOverBuffer().then(buf => bufferMap.set('gameover', buf)));
 
   for (const level of [5, 10, 20, 50]) {
@@ -257,6 +374,12 @@ async function prerenderBuffers() {
         .then(buf => bufferMap.set(`combo_${l}`, buf))
     );
   }
+
+  promises.push(
+    renderBgmBuffer().then(buf => {
+      bgmBuffer = buf;
+    })
+  );
 
   await Promise.all(promises);
 }
@@ -268,6 +391,11 @@ export function initAudio() {
     masterGain = audioCtx.createGain();
     masterGain.gain.value = 0.6;
     masterGain.connect(audioCtx.destination);
+
+    bgmGain = audioCtx.createGain();
+    bgmGain.gain.value = 0.15;
+    bgmGain.connect(masterGain);
+
     prerenderBuffers();
   } catch (e) {
     audioCtx = null;
@@ -309,10 +437,43 @@ function playFromBuffer(key) {
   source.onended = () => { activePool.delete(id); source.disconnect(); voiceGain.disconnect(); };
 }
 
+export function startBgm() {
+  if (!audioCtx || !bgmBuffer || bgmPlaying) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  bgmSource = audioCtx.createBufferSource();
+  bgmSource.buffer = bgmBuffer;
+  bgmSource.loop = true;
+  bgmSource.playbackRate.value = bgmPlaybackRate;
+  bgmSource.connect(bgmGain);
+  bgmSource.start();
+  bgmPlaying = true;
+}
+
+export function stopBgm() {
+  if (!bgmSource || !bgmPlaying) return;
+  try {
+    bgmSource.stop();
+    bgmSource.disconnect();
+  } catch(e) {}
+  bgmSource = null;
+  bgmPlaying = false;
+}
+
+export function updateBgmSpeed(stageIndex) {
+  const speeds = [1.0, 1.05, 1.1, 1.15, 1.25, 1.35];
+  const newRate = speeds[stageIndex] || 1.0;
+  if (newRate !== bgmPlaybackRate && bgmSource) {
+    bgmPlaybackRate = newRate;
+    bgmSource.playbackRate.value = newRate;
+  }
+}
+
 export function playGunShot(weaponIndex) { playFromBuffer(`gun_${weaponIndex}`); }
 export function playHitSound(materialType) { playFromBuffer(`hit_${materialType || 'stone'}`); }
 export function playDestroySound(materialType) { playFromBuffer(`destroy_${materialType || 'stone'}`); }
 export function playPickup() { playFromBuffer('pickup'); }
+export function playPowerup() { playFromBuffer('powerup'); }
 export function playGameOver() { playFromBuffer('gameover'); }
 export function playComboSound(combo) {
   const levels = [5, 10, 20, 50];
@@ -323,4 +484,8 @@ export function playComboSound(combo) {
     }
   }
 }
-export function toggleMute() { muted = !muted; if (masterGain) masterGain.gain.value = muted ? 0 : 0.6; return muted; }
+export function toggleMute() {
+  muted = !muted;
+  if (masterGain) masterGain.gain.value = muted ? 0 : 0.6;
+  return muted;
+}

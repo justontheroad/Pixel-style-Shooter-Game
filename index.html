@@ -2,84 +2,77 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <title>像素射击 PIXEL SHOOTER</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>像素射击 - Pixel Shooter</title>
   <link rel="stylesheet" href="css/style.css">
   <script type="importmap">
   {
     "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+      "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js"
     }
   }
   </script>
 </head>
 <body>
-  <div id="gameContainer"></div>
-
-  <button id="muteBtn" class="mute-btn">🔊</button>
-
-  <div id="startScreen" class="overlay">
-    <div class="start-content">
-      <h1 class="title-zh">像素射击</h1>
-      <h2 class="title-en">PIXEL SHOOTER</h2>
-      <div class="high-score-display">
-        <span class="label">BEST</span>
-        <span id="highScoreDisplay" class="value">0</span>
+  <div id="gameContainer">
+    <div id="hud" class="hidden">
+      <div id="hud-top">
+        <span id="score">0</span>
+        <span id="combo"></span>
       </div>
-      <button id="startBtn" class="pixel-btn pulse-btn">START</button>
-      <p class="tap-hint">TAP TO SWITCH CHANNEL</p>
-    </div>
-  </div>
-
-  <div id="hudOverlay" class="hud hidden">
-    <div class="hud-weapon">
-      <span id="weaponName" class="weapon-name">左轮手枪</span>
-      <span id="weaponLevel" class="weapon-level">Lv.1</span>
-    </div>
-    <div class="hud-score">
-      <span id="scoreDisplay" class="score-value">0</span>
-    </div>
-    <div class="hud-combo">
-      <span id="comboDisplay" class="combo-value"></span>
-      <span id="comboMult" class="combo-mult"></span>
-    </div>
-  </div>
-
-  <div id="gameOverScreen" class="overlay hidden">
-    <div class="gameover-content">
-      <h1 class="gameover-title">GAME OVER</h1>
-      <div class="gameover-stats">
-        <div class="stat-row">
-          <span class="stat-label">SCORE</span>
-          <span id="finalScore" class="stat-value">0</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">TIME</span>
-          <span id="survivalTime" class="stat-value">0s</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">DESTROYED</span>
-          <span id="destroyedCount" class="stat-value">0</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">MAX COMBO</span>
-          <span id="maxCombo" class="stat-value">0</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">WEAPONS</span>
-          <span id="weaponsUsed" class="stat-value weapons-list">左轮手枪</span>
-        </div>
+      <div id="hud-middle">
+        <span id="weapon">左轮手枪</span>
+        <span id="stage">新手期</span>
       </div>
-      <div class="new-record hidden" id="newRecord">NEW RECORD!</div>
-      <button id="retryBtn" class="pixel-btn">RETRY</button>
-      <button id="menuBtn" class="pixel-btn secondary-btn">MENU</button>
+      <div id="powerup-status"></div>
+      <div id="hud-bottom">
+        <span id="time">0.0s</span>
+      </div>
     </div>
+
+    <div id="start-overlay">
+      <div id="start-content">
+        <h1>像素射击</h1>
+        <p class="subtitle">PIXEL SHOOTER</p>
+        <div id="how-to-play">
+          <div class="instruction">
+            <span class="key">🖱️ 点击</span>
+            <span class="desc">切换通道</span>
+          </div>
+          <div class="instruction">
+            <span class="key">⬅ ➡</span>
+            <span class="desc">键盘切换</span>
+          </div>
+          <div class="instruction">
+            <span class="key">🔫 拾取</span>
+            <span class="desc">升级武器</span>
+          </div>
+          <div class="instruction">
+            <span class="key">🛡 道具</span>
+            <span class="desc">护盾/减速/双倍/清除</span>
+          </div>
+        </div>
+        <button id="startBtn" class="game-btn">START</button>
+      </div>
+    </div>
+
+    <div id="gameover-overlay" class="hidden">
+      <div id="gameover-content">
+        <h2>GAME OVER</h2>
+        <div id="new-record" class="hidden">NEW RECORD!</div>
+        <div class="stats">
+          <div class="stat-row"><span>SCORE</span><span id="final-score">0</span></div>
+          <div class="stat-row"><span>TIME</span><span id="final-time">0s</span></div>
+          <div class="stat-row"><span>DESTROYED</span><span id="final-destroyed">0</span></div>
+          <div class="stat-row"><span>MAX COMBO</span><span id="final-combo">0</span></div>
+          <div class="stat-row"><span>HIGH SCORE</span><span id="high-score">0</span></div>
+          <div class="stat-row weapons-row"><span>WEAPONS</span><span id="weapons-list"></span></div>
+        </div>
+        <button id="retryBtn" class="game-btn">RETRY</button>
+      </div>
+    </div>
+
+    <button id="muteBtn" class="mute-btn">🔊</button>
   </div>
 
   <script type="module" src="js/main.js"></script>
