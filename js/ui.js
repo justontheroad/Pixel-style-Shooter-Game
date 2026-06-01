@@ -24,6 +24,7 @@ export function updateHUD() {
   const timeEl = document.getElementById('time');
   const stageEl = document.getElementById('stage');
   const powerupEl = document.getElementById('powerup-status');
+  const waveEl = document.getElementById('wave');
 
   if (scoreEl) scoreEl.textContent = state.score;
   if (comboEl) {
@@ -32,16 +33,24 @@ export function updateHUD() {
   }
   if (weaponEl) {
     const weapon = WEAPONS[state.currentWeaponIndex];
-    weaponEl.textContent = weapon.name;
+    let name = weapon.name;
+    if (state.tempWeaponActive) name = '🔥' + name;
+    weaponEl.textContent = name;
   }
   if (timeEl) timeEl.textContent = state.survivalTime.toFixed(1) + 's';
   if (stageEl && state.currentStage) stageEl.textContent = state.currentStage.name;
+
+  if (waveEl) {
+    waveEl.textContent = state.currentWaveIndex > 0 ? `W${state.currentWaveIndex}` : '';
+  }
 
   if (powerupEl) {
     let parts = [];
     if (state.shieldActive) parts.push(`🛡${state.shieldTimer.toFixed(1)}s`);
     if (state.slowTimeActive) parts.push(`⏳${state.slowTimeTimer.toFixed(1)}s`);
     if (state.doubleScoreActive) parts.push(`×2 ${state.doubleScoreTimer.toFixed(1)}s`);
+    if (state.tempWeaponActive) parts.push(`🔫临时${state.tempWeaponTimer.toFixed(1)}s`);
+    if (state.cloneActive) parts.push(`👥分身${state.cloneTimer.toFixed(1)}s`);
     powerupEl.textContent = parts.join(' ');
   }
 }
@@ -72,10 +81,11 @@ export function showGameOver() {
 
   if (weaponsList) {
     const names = [];
-    for (const idx of state.weaponsUsed) {
+    const sortedIndices = Array.from(state.weaponsUsed).sort((a, b) => a - b);
+    for (const idx of sortedIndices) {
       if (WEAPONS[idx]) names.push(WEAPONS[idx].name);
     }
-    weaponsList.textContent = names.join(' → ');
+    weaponsList.textContent = names.length > 0 ? names.join(' → ') : WEAPONS[0].name;
   }
 
   show(overlay);

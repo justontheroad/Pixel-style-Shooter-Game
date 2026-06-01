@@ -8,7 +8,6 @@ import {
 import { playGunShot, playHitSound, playDestroySound } from './audio.js';
 import { spawnHitParticles, spawnDamageText, spawnDestroyParticles, spawnMuzzleFlash, spawnExtraExplosion, triggerScreenShake } from './effects.js';
 import { addScore, addCombo } from './score.js';
-import { tryDropItem } from './items.js';
 import { removeObstacleFromScene } from './obstacles.js';
 
 export function updateWeapons(dt) {
@@ -22,6 +21,9 @@ export function updateWeapons(dt) {
 
   if (weapon.type === 'beam') {
     updateBeam(dt, weapon);
+    updateCloneBeam(dt, weapon);
+    updateBullets(dt);
+    updateCloneBullets(dt);
     return;
   }
 
@@ -34,6 +36,7 @@ export function updateWeapons(dt) {
   }
 
   updateBullets(dt);
+  updateCloneBullets(dt);
 }
 
 function fireBullets(weapon) {
@@ -61,21 +64,28 @@ function fireBullets(weapon) {
       break;
     }
     case 'shotgun': {
-      for (let i = -1; i <= 1; i++) {
-        const angleOffset = i * 10 + (Math.random() - 0.5) * 5;
+      const pelletCount = 5;
+      const spreadDeg = weapon.spreadAngle;
+      for (let i = 0; i < pelletCount; i++) {
+        const t = pelletCount > 1 ? (i / (pelletCount - 1)) * 2 - 1 : 0;
+        const angleOffset = t * spreadDeg + (Math.random() - 0.5) * 3;
         createBullet(playerX, bulletY, angleOffset, weapon);
       }
       break;
     }
   }
+
+  fireCloneBullets(weapon);
 }
 
 function createBullet(x, y, angleDeg, weapon) {
   if (state.bullets.length >= MAX_BULLETS) return;
 
   const size = weapon.bulletSize;
-  const geo = new THREE.PlaneGeometry(size, size * 1.5);
-  const mat = new THREE.MeshBasicMaterial({ color: weapon.bulletColor });
+  const bulletH = weapon.type === 'pierce' ? size * 3 : (weapon.type === 'beam' ? size * 4 : size * 1.5);
+  const geo = new THREE.PlaneGeometry(size, bulletH);
+  const bulletColor = state.tempWeaponActive ? 0xFF6600 : weapon.bulletColor;
+  const mat = new THREE.MeshBasicMaterial({ color: bulletColor });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(x, y, 10);
   state.scene.add(mesh);
@@ -91,6 +101,7 @@ function createBullet(x, y, angleDeg, weapon) {
     damage: weapon.damage,
     pierceCount: weapon.pierceCount || 0,
     pierced: 0,
+    hitObstacles: new Set(),
     explosive: weapon.type === 'explosive',
     explosionRadius: weapon.explosionRadius || 0,
     weaponLevel: weapon.level,
@@ -112,11 +123,13 @@ function updateBullets(dt) {
     let hit = false;
     for (const obs of state.obstacles) {
       if (!obs.alive) continue;
+      if (b.hitObstacles.has(obs)) continue;
       const sameChannel = (obs.channel === 'left' && b.mesh.position.x < 0) ||
                           (obs.channel === 'right' && b.mesh.position.x >= 0);
       if (!sameChannel) continue;
       const dy = Math.abs(b.mesh.position.y - obs.mesh.position.y);
       if (dy < obs.height / 2 + 4) {
+        b.hitObstacles.add(obs);
         hitObstacle(obs, b);
         if (b.pierced < b.pierceCount) {
           b.pierced++;
@@ -128,6 +141,122 @@ function updateBullets(dt) {
     }
     if (hit) {
       removeBullet(i);
+    }
+  }
+}
+
+function fireCloneBullets(weapon) {
+  if (!state.cloneActive) return;
+  const oppositeX = state.currentChannel === 'left' ? CHANNEL_RIGHT_X : CHANNEL_LEFT_X;
+  const bulletY = PLAYER_Y + PLAYER_HEIGHT / 2 + 5;
+
+  if (state.cloneBullets.length >= MAX_BULLETS) return;
+
+  switch (weapon.type) {
+    case 'single':
+    case 'pierce':
+    case 'explosive':
+      createCloneBullet(oppositeX, bulletY, 0, weapon);
+      break;
+    case 'dual':
+      createCloneBullet(oppositeX - 5, bulletY, 0, weapon);
+      createCloneBullet(oppositeX + 5, bulletY, 0, weapon);
+      break;
+    case 'spread':
+    case 'rapid': {
+      const spreadDeg = weapon.spreadAngle;
+      const angleOffset = (Math.random() - 0.5) * spreadDeg * 2;
+      createCloneBullet(oppositeX, bulletY, angleOffset, weapon);
+      break;
+    }
+    case 'shotgun': {
+      const pelletCount = 5;
+      const spreadDeg = weapon.spreadAngle;
+      for (let i = 0; i < pelletCount; i++) {
+        const t = pelletCount > 1 ? (i / (pelletCount - 1)) * 2 - 1 : 0;
+        const angleOffset = t * spreadDeg + (Math.random() - 0.5) * 3;
+        createCloneBullet(oppositeX, bulletY, angleOffset, weapon);
+      }
+      break;
+    }
+  }
+}
+
+function createCloneBullet(x, y, angleDeg, weapon) {
+  if (state.cloneBullets.length >= MAX_BULLETS) return;
+  const size = weapon.bulletSize;
+  const geo = new THREE.PlaneGeometry(size, size * 1.5);
+  const mat = new THREE.MeshBasicMaterial({ color: 0x00FFAA, transparent: true, opacity: 0.7 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, 10);
+  state.scene.add(mesh);
+
+  const angleRad = (angleDeg * Math.PI) / 180;
+  const vx = Math.sin(angleRad) * BULLET_SPEED;
+  const vy = Math.cos(angleRad) * BULLET_SPEED;
+
+  state.cloneBullets.push({
+    mesh,
+    vx,
+    vy,
+    damage: weapon.damage,
+    alive: true,
+  });
+}
+
+function updateCloneBullets(dt) {
+  if (!state.cloneActive) return;
+
+  const oppositeX = state.currentChannel === 'left' ? CHANNEL_RIGHT_X : CHANNEL_LEFT_X;
+  if (state.cloneGroup) {
+    state.cloneGroup.position.x = oppositeX;
+    const blink = state.cloneTimer < 3 ? (Math.sin(state.cloneTimer * 10) > 0 ? 0.5 : 0.2) : 0.5;
+    state.cloneGroup.children.forEach(child => {
+      if (child.material) child.material.opacity = blink;
+    });
+  }
+
+  const weapon = WEAPONS[state.currentWeaponIndex];
+
+  for (let i = state.cloneBullets.length - 1; i >= 0; i--) {
+    const b = state.cloneBullets[i];
+    b.mesh.position.x += b.vx * dt;
+    b.mesh.position.y += b.vy * dt;
+
+    if (b.mesh.position.y > GAME_HEIGHT / 2 + 20) {
+      state.scene.remove(b.mesh);
+      b.mesh.geometry.dispose();
+      b.mesh.material.dispose();
+      state.cloneBullets.splice(i, 1);
+      continue;
+    }
+
+    let hit = false;
+    for (const obs of state.obstacles) {
+      if (!obs.alive) continue;
+      const sameChannel = (obs.channel === 'left' && b.mesh.position.x < 0) ||
+                          (obs.channel === 'right' && b.mesh.position.x >= 0);
+      if (!sameChannel) continue;
+      const dy = Math.abs(b.mesh.position.y - obs.mesh.position.y);
+      if (dy < obs.height / 2 + 4) {
+        obs.hp -= b.damage;
+        obs.flashTimer = 0.1;
+        obs.hitScale = 1.08;
+        playHitSound(obs.materialType);
+        spawnHitParticles(b.mesh.position.x, b.mesh.position.y, obs.materialType, obs.colorHex);
+        spawnDamageText(b.mesh.position.x, b.mesh.position.y + obs.height / 2, b.damage, 0x00FFAA);
+        if (obs.hp <= 0) {
+          destroyObstacle(obs);
+        }
+        hit = true;
+        break;
+      }
+    }
+    if (hit) {
+      state.scene.remove(b.mesh);
+      b.mesh.geometry.dispose();
+      b.mesh.material.dispose();
+      state.cloneBullets.splice(i, 1);
     }
   }
 }
@@ -160,11 +289,12 @@ export function hitObstacle(obs, bullet) {
       const dy = Math.abs(bullet.mesh.position.y - other.mesh.position.y);
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < bullet.explosionRadius) {
-        other.hp -= bullet.damage * 0.5;
+        const splashDmg = Math.floor(bullet.damage * 0.7);
+        other.hp -= splashDmg;
         other.flashTimer = 0.1;
         other.hitScale = 1.05;
-        const splashColor = getDamageColor(Math.floor(bullet.damage * 0.5), bullet.weaponLevel);
-        spawnDamageText(other.mesh.position.x, other.mesh.position.y + other.height / 2, Math.floor(bullet.damage * 0.5), splashColor);
+        const splashColor = getDamageColor(splashDmg, bullet.weaponLevel);
+        spawnDamageText(other.mesh.position.x, other.mesh.position.y + other.height / 2, splashDmg, splashColor);
       }
     }
     spawnExplosionEffect(bullet.mesh.position.x, bullet.mesh.position.y);
@@ -185,12 +315,6 @@ export function destroyObstacle(obs) {
     triggerScreenShake(1.5);
   } else if (obs.level === 8) {
     spawnExtraExplosion(obs.mesh.position.x, obs.mesh.position.y, 25, 0xFF4400);
-    setTimeout(() => {
-      if (state.gameActive) spawnExtraExplosion(obs.mesh.position.x, obs.mesh.position.y + 5, 18, 0xFFAA00);
-    }, 80);
-    setTimeout(() => {
-      if (state.gameActive) spawnExtraExplosion(obs.mesh.position.x, obs.mesh.position.y - 5, 15, 0xFFCC44);
-    }, 160);
     triggerScreenShake(2.5);
   } else if (obs.level === 9) {
     spawnExtraExplosion(obs.mesh.position.x, obs.mesh.position.y, 30, 0x88FF44);
@@ -204,7 +328,17 @@ export function destroyObstacle(obs) {
 
   addScore(obs.score);
   addCombo();
-  tryDropItem(obs.mesh.position.x, obs.mesh.position.y, obs.level);
+
+  state.pendingDrops.push({ x: obs.mesh.position.x, y: obs.mesh.position.y, level: obs.level });
+
+  if (obs.level >= state.maxObstacleLevel) {
+    state.destroyedAtCurrentLevel++;
+    const threshold = 3 + state.maxObstacleLevel * 2;
+    if (state.destroyedAtCurrentLevel >= threshold && state.maxObstacleLevel < 9) {
+      state.maxObstacleLevel++;
+      state.destroyedAtCurrentLevel = 0;
+    }
+  }
 
   removeObstacleFromScene(obs);
 }
@@ -236,7 +370,8 @@ function updateBeam(dt, weapon) {
   const beamHeight = GAME_HEIGHT;
 
   if (!beamMesh) {
-    beamMat = new THREE.MeshBasicMaterial({ color: weapon.bulletColor, transparent: true, opacity: 0.7 });
+    const beamColor = state.tempWeaponActive ? 0xFF6600 : weapon.bulletColor;
+    beamMat = new THREE.MeshBasicMaterial({ color: beamColor, transparent: true, opacity: 0.7 });
     const geo = new THREE.PlaneGeometry(4, beamHeight);
     beamMesh = new THREE.Mesh(geo, beamMat);
     beamMesh.position.set(playerX, beamY + beamHeight / 2, 10);
@@ -246,17 +381,31 @@ function updateBeam(dt, weapon) {
   beamMesh.position.x = playerX;
   beamMesh.visible = state.gameActive;
 
+  if (state.tempWeaponActive && beamMat) {
+    beamMat.color.set(0xFF6600);
+  }
+
   if (!state.gameActive) return;
 
+  let closestObs = null;
+  let closestDist = Infinity;
   for (const obs of state.obstacles) {
     if (!obs.alive) continue;
-    const dx = Math.abs(playerX - obs.mesh.position.x);
-    if (dx < CHANNEL_WIDTH / 2) {
-      obs.hp -= weapon.damage * dt * 60;
-      obs.flashTimer = 0.05;
-      if (obs.hp <= 0) {
-        destroyObstacle(obs);
-      }
+    const sameChannel = (obs.channel === 'left' && playerX < 0) ||
+                        (obs.channel === 'right' && playerX >= 0);
+    if (!sameChannel) continue;
+    const dist = Math.abs(obs.mesh.position.y - PLAYER_Y);
+    if (dist < closestDist) {
+      closestDist = dist;
+      closestObs = obs;
+    }
+  }
+
+  if (closestObs) {
+    closestObs.hp -= weapon.damage * dt * 60;
+    closestObs.flashTimer = 0.05;
+    if (closestObs.hp <= 0) {
+      destroyObstacle(closestObs);
     }
   }
 
@@ -273,6 +422,76 @@ export function cleanupBeam() {
     beamMesh.material.dispose();
     beamMesh = null;
     beamMat = null;
+  }
+  if (cloneBeamMesh) {
+    state.scene.remove(cloneBeamMesh);
+    cloneBeamMesh.geometry.dispose();
+    cloneBeamMesh.material.dispose();
+    cloneBeamMesh = null;
+    cloneBeamMat = null;
+  }
+}
+
+let cloneBeamMesh = null;
+let cloneBeamMat = null;
+
+function updateCloneBeam(dt, weapon) {
+  if (!state.cloneActive) {
+    if (cloneBeamMesh) {
+      state.scene.remove(cloneBeamMesh);
+      cloneBeamMesh.geometry.dispose();
+      cloneBeamMesh.material.dispose();
+      cloneBeamMesh = null;
+      cloneBeamMat = null;
+    }
+    return;
+  }
+
+  const oppositeX = state.currentChannel === 'left' ? CHANNEL_RIGHT_X : CHANNEL_LEFT_X;
+  const beamY = PLAYER_Y + PLAYER_HEIGHT / 2;
+  const beamHeight = GAME_HEIGHT;
+
+  if (!cloneBeamMesh) {
+    cloneBeamMat = new THREE.MeshBasicMaterial({ color: 0x00FFAA, transparent: true, opacity: 0.5 });
+    const geo = new THREE.PlaneGeometry(4, beamHeight);
+    cloneBeamMesh = new THREE.Mesh(geo, cloneBeamMat);
+    cloneBeamMesh.position.set(oppositeX, beamY + beamHeight / 2, 10);
+    state.scene.add(cloneBeamMesh);
+  }
+
+  cloneBeamMesh.position.x = oppositeX;
+  cloneBeamMesh.visible = state.gameActive;
+
+  if (state.cloneGroup) {
+    state.cloneGroup.position.x = oppositeX;
+    const blink = state.cloneTimer < 3 ? (Math.sin(state.cloneTimer * 10) > 0 ? 0.5 : 0.2) : 0.5;
+    state.cloneGroup.children.forEach(child => {
+      if (child.material) child.material.opacity = blink;
+    });
+  }
+
+  if (!state.gameActive) return;
+
+  let closestObs = null;
+  let closestDist = Infinity;
+  for (const obs of state.obstacles) {
+    if (!obs.alive) continue;
+    const sameChannel = (obs.channel === 'left' && oppositeX < 0) ||
+                        (obs.channel === 'right' && oppositeX >= 0);
+    if (!sameChannel) continue;
+    const dist = Math.abs(obs.mesh.position.y - PLAYER_Y);
+    if (dist < closestDist) {
+      closestDist = dist;
+      closestObs = obs;
+    }
+  }
+
+  if (closestObs) {
+    closestObs.hp -= weapon.damage * dt * 60;
+    closestObs.flashTimer = 0.05;
+    if (closestObs.hp <= 0) {
+      destroyObstacle(closestObs);
+    }
   }
 }
 

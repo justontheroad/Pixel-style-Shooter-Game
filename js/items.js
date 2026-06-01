@@ -3,11 +3,15 @@ import { state } from './state.js';
 import {
   WEAPONS, POWERUPS, POWERUP_DROP_RATE,
   PLAYER_Y, PLAYER_HEIGHT, PLAYER_WIDTH,
-  DEATH_LINE_Y, GAME_WIDTH, GAME_HEIGHT
+  DEATH_LINE_Y,
+  CHANNEL_LEFT_X, CHANNEL_RIGHT_X,
+  CHANNEL_WIDTH
 } from './config.js';
+import { getWaveSpawnConfig } from './waves.js';
 import { updateGunAppearance } from './player.js';
 import { spawnPickupParticles, spawnItemSparkle, spawnExtraExplosion, triggerScreenShake } from './effects.js';
 import { playPickup, playPowerup } from './audio.js';
+import { createTextTexture, disposeTextTexture } from './texttexture.js';
 
 export function tryDropItem(x, y, obstacleLevel) {
   const stage = state.currentStage;
@@ -15,22 +19,29 @@ export function tryDropItem(x, y, obstacleLevel) {
 
   if (Math.random() > stage.itemDropRate) return;
 
+  const playerChannelX = state.currentChannel === 'left' ? CHANNEL_LEFT_X : CHANNEL_RIGHT_X;
+
   if (Math.random() < POWERUP_DROP_RATE) {
     const powerupIndex = Math.floor(Math.random() * POWERUPS.length);
-    createPowerup(x, y, powerupIndex);
+    createPowerup(playerChannelX, y, powerupIndex);
     return;
   }
 
-  const minLevel = stage.itemLevelMin;
-  const maxLevel = stage.itemLevelMax;
-  const weaponLevel = minLevel + Math.floor(Math.random() * (maxLevel - minLevel + 1));
+  let realWeaponIndex = state.tempWeaponActive ? state.savedWeaponIndex : state.currentWeaponIndex;
+  let weaponLevel = realWeaponIndex + 1;
+  const waveConfig = state.wavePlan ? getWaveSpawnConfig(state.gameTime) : null;
+  if (waveConfig && waveConfig.weaponTarget) {
+    const target = waveConfig.weaponTarget - 1;
+    if (target > realWeaponIndex) {
+      weaponLevel = Math.min(realWeaponIndex + 2, target + 1);
+    }
+  }
+  if (weaponLevel >= WEAPONS.length) return;
 
-  if (weaponLevel <= state.currentWeaponIndex) return;
-
-  createItem(x, y, weaponLevel);
+  createItem(playerChannelX, y, weaponLevel);
 }
 
-function createItem(x, y, weaponLevel) {
+export function createItem(x, y, weaponLevel) {
   const weapon = WEAPONS[weaponLevel];
 
   const group = new THREE.Group();
@@ -59,6 +70,13 @@ function createItem(x, y, weaponLevel) {
   indicator.position.set(0, -4, 10);
   group.add(indicator);
 
+  const texResult = createTextTexture(weapon.name, weapon.bulletColor, 6);
+  const labelGeo = new THREE.PlaneGeometry(texResult.width, texResult.height);
+  const labelMat = new THREE.MeshBasicMaterial({ map: texResult.texture, transparent: true, depthWrite: false });
+  const label = new THREE.Mesh(labelGeo, labelMat);
+  label.position.set(0, -12, 11);
+  group.add(label);
+
   group.position.set(x, y, 0);
   state.scene.add(group);
 
@@ -71,10 +89,11 @@ function createItem(x, y, weaponLevel) {
     speed: 40,
     alive: true,
     timer: 0,
+    texResult,
   });
 }
 
-function createPowerup(x, y, powerupIndex) {
+export function createPowerup(x, y, powerupIndex) {
   const config = POWERUPS[powerupIndex];
 
   const group = new THREE.Group();
@@ -97,6 +116,13 @@ function createPowerup(x, y, powerupIndex) {
   border.position.z = 9;
   group.add(border);
 
+  const texResult = createTextTexture(config.name, config.color, 6);
+  const labelGeo = new THREE.PlaneGeometry(texResult.width, texResult.height);
+  const labelMat = new THREE.MeshBasicMaterial({ map: texResult.texture, transparent: true, depthWrite: false });
+  const label = new THREE.Mesh(labelGeo, labelMat);
+  label.position.set(0, -12, 11);
+  group.add(label);
+
   group.position.set(x, y, 0);
   state.scene.add(group);
 
@@ -109,13 +135,17 @@ function createPowerup(x, y, powerupIndex) {
     speed: 35,
     alive: true,
     timer: 0,
+    texResult,
   });
 }
 
 export function updateItems(dt) {
+  processPendingDrops();
+
   for (let i = state.items.length - 1; i >= 0; i--) {
     const item = state.items[i];
     if (!item.alive) {
+      if (item.texResult) disposeTextTexture(item.texResult);
       state.scene.remove(item.group);
       state.items.splice(i, 1);
       continue;
@@ -135,6 +165,7 @@ export function updateItems(dt) {
     if (dx < 16 && dy < 20) {
       pickupItem(item);
       item.alive = false;
+      if (item.texResult) disposeTextTexture(item.texResult);
       state.scene.remove(item.group);
       state.items.splice(i, 1);
       continue;
@@ -142,6 +173,7 @@ export function updateItems(dt) {
 
     if (item.group.position.y < DEATH_LINE_Y - 20) {
       item.alive = false;
+      if (item.texResult) disposeTextTexture(item.texResult);
       state.scene.remove(item.group);
       state.items.splice(i, 1);
     }
@@ -150,6 +182,7 @@ export function updateItems(dt) {
   for (let i = state.powerups.length - 1; i >= 0; i--) {
     const pu = state.powerups[i];
     if (!pu.alive) {
+      if (pu.texResult) disposeTextTexture(pu.texResult);
       state.scene.remove(pu.group);
       state.powerups.splice(i, 1);
       continue;
@@ -169,6 +202,7 @@ export function updateItems(dt) {
     if (dx < 16 && dy < 20) {
       activatePowerup(pu);
       pu.alive = false;
+      if (pu.texResult) disposeTextTexture(pu.texResult);
       state.scene.remove(pu.group);
       state.powerups.splice(i, 1);
       continue;
@@ -176,6 +210,7 @@ export function updateItems(dt) {
 
     if (pu.group.position.y < DEATH_LINE_Y - 20) {
       pu.alive = false;
+      if (pu.texResult) disposeTextTexture(pu.texResult);
       state.scene.remove(pu.group);
       state.powerups.splice(i, 1);
     }
@@ -184,15 +219,30 @@ export function updateItems(dt) {
   updatePowerupTimers(dt);
 }
 
+function processPendingDrops() {
+  while (state.pendingDrops.length > 0) {
+    const drop = state.pendingDrops.shift();
+    tryDropItem(drop.x, drop.y, drop.level);
+  }
+}
+
 function pickupItem(item) {
   const weaponLevel = item.weaponLevel;
+  if (state.tempWeaponActive) {
+    if (weaponLevel > state.savedWeaponIndex) {
+      state.savedWeaponIndex = state.savedWeaponIndex + 1;
+      state.weaponsUsed.add(state.savedWeaponIndex);
+      spawnPickupParticles(state.playerX, PLAYER_Y);
+      playPickup();
+    }
+    return;
+  }
   if (weaponLevel > state.currentWeaponIndex) {
     state.currentWeaponIndex = weaponLevel;
     updateGunAppearance();
     state.weaponsUsed.add(weaponLevel);
     spawnPickupParticles(state.playerX, PLAYER_Y);
     playPickup();
-    showWeaponPopup(WEAPONS[weaponLevel].name, weaponLevel);
   }
 }
 
@@ -224,9 +274,19 @@ function activatePowerup(pu) {
     case 'clear':
       clearAllObstacles();
       break;
+    case 'tempweapon':
+      state.tempWeaponActive = true;
+      state.tempWeaponTimer = config.duration;
+      state.savedWeaponIndex = state.currentWeaponIndex;
+      state.currentWeaponIndex = Math.min(state.currentWeaponIndex + 3, WEAPONS.length - 1);
+      updateGunAppearance();
+      break;
+    case 'clone':
+      state.cloneActive = true;
+      state.cloneTimer = config.duration;
+      createClone();
+      break;
   }
-
-  showPowerupPopup(config.name, config.color);
 }
 
 function clearAllObstacles() {
@@ -274,61 +334,97 @@ function updatePowerupTimers(dt) {
       state.doubleScoreTimer = 0;
     }
   }
+
+  if (state.tempWeaponActive) {
+    state.tempWeaponTimer -= dt;
+    if (state.tempWeaponTimer <= 0) {
+      state.tempWeaponActive = false;
+      state.tempWeaponTimer = 0;
+      state.currentWeaponIndex = state.savedWeaponIndex;
+      updateGunAppearance();
+    }
+  }
+
+  if (state.cloneActive) {
+    state.cloneTimer -= dt;
+    if (state.cloneTimer <= 0) {
+      state.cloneActive = false;
+      state.cloneTimer = 0;
+      removeClone();
+    }
+  }
 }
 
-function showWeaponPopup(name, level) {
-  const weapon = WEAPONS[level];
+function createClone() {
   const group = new THREE.Group();
 
-  const bgGeo = new THREE.PlaneGeometry(60, 12);
-  const bgMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.7 });
-  const bg = new THREE.Mesh(bgGeo, bgMat);
-  bg.position.z = 25;
-  group.add(bg);
+  const bodyGeo = new THREE.PlaneGeometry(PLAYER_WIDTH, PLAYER_HEIGHT);
+  const bodyMat = new THREE.MeshBasicMaterial({ color: 0x44aaff, transparent: true, opacity: 0.5 });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.z = 5;
+  group.add(body);
 
-  const borderGeo = new THREE.PlaneGeometry(62, 14);
-  const borderMat = new THREE.MeshBasicMaterial({ color: weapon.bulletColor, transparent: true, opacity: 0.5 });
-  const border = new THREE.Mesh(borderGeo, borderMat);
-  border.position.z = 24;
-  group.add(border);
+  const headGeo = new THREE.PlaneGeometry(12, 10);
+  const headMat = new THREE.MeshBasicMaterial({ color: 0xffcc88, transparent: true, opacity: 0.5 });
+  const head = new THREE.Mesh(headGeo, headMat);
+  head.position.set(0, PLAYER_HEIGHT / 2 - 2, 6);
+  group.add(head);
 
-  group.position.set(state.playerX, PLAYER_Y + 30, 0);
+  const eyeGeo = new THREE.PlaneGeometry(2, 2);
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.5 });
+  const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+  leftEye.position.set(-3, PLAYER_HEIGHT / 2 - 1, 7);
+  group.add(leftEye);
+  const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+  rightEye.position.set(3, PLAYER_HEIGHT / 2 - 1, 7);
+  group.add(rightEye);
+
+  const gunGeo = new THREE.PlaneGeometry(4, 10);
+  const gunMat = new THREE.MeshBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.5 });
+  const gun = new THREE.Mesh(gunGeo, gunMat);
+  gun.position.set(4, PLAYER_HEIGHT / 2 + 3, 6);
+  group.add(gun);
+
+  const oppositeX = state.currentChannel === 'left' ? CHANNEL_RIGHT_X : CHANNEL_LEFT_X;
+  group.position.set(oppositeX, PLAYER_Y, 0);
   state.scene.add(group);
 
-  state.effects.push({ mesh: group, mat: bgMat, type: 'popup', timer: 0, duration: 1.5 });
+  state.cloneGroup = group;
+  state.cloneBullets = [];
 }
 
-function showPowerupPopup(name, color) {
-  const group = new THREE.Group();
-
-  const bgGeo = new THREE.PlaneGeometry(60, 12);
-  const bgMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.7 });
-  const bg = new THREE.Mesh(bgGeo, bgMat);
-  bg.position.z = 25;
-  group.add(bg);
-
-  const borderGeo = new THREE.PlaneGeometry(62, 14);
-  const borderMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.6 });
-  const border = new THREE.Mesh(borderGeo, borderMat);
-  border.position.z = 24;
-  group.add(border);
-
-  group.position.set(state.playerX, PLAYER_Y + 30, 0);
-  state.scene.add(group);
-
-  state.effects.push({ mesh: group, mat: bgMat, type: 'popup', timer: 0, duration: 1.5 });
+function removeClone() {
+  if (state.cloneGroup) {
+    state.scene.remove(state.cloneGroup);
+    state.cloneGroup.children.forEach(child => {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) child.material.dispose();
+    });
+    state.cloneGroup = null;
+  }
+  for (let i = state.cloneBullets.length - 1; i >= 0; i--) {
+    const b = state.cloneBullets[i];
+    state.scene.remove(b.mesh);
+    b.mesh.geometry.dispose();
+    b.mesh.material.dispose();
+  }
+  state.cloneBullets.length = 0;
 }
 
 export function resetItems() {
   for (const item of state.items) {
     if (item.group) state.scene.remove(item.group);
+    if (item.texResult) disposeTextTexture(item.texResult);
   }
   state.items.length = 0;
 
   for (const pu of state.powerups) {
     if (pu.group) state.scene.remove(pu.group);
+    if (pu.texResult) disposeTextTexture(pu.texResult);
   }
   state.powerups.length = 0;
+
+  state.pendingDrops.length = 0;
 
   state.shieldActive = false;
   state.shieldTimer = 0;
@@ -344,4 +440,12 @@ export function resetItems() {
 
   state.doubleScoreActive = false;
   state.doubleScoreTimer = 0;
+
+  state.tempWeaponActive = false;
+  state.tempWeaponTimer = 0;
+  state.savedWeaponIndex = 0;
+
+  state.cloneActive = false;
+  state.cloneTimer = 0;
+  removeClone();
 }

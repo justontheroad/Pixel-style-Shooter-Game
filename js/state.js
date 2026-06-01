@@ -16,6 +16,7 @@ export const state = {
   beamActive: false,
 
   bullets: [],
+  cloneBullets: [],
   obstacles: [],
   items: [],
   powerups: [],
@@ -34,6 +35,16 @@ export const state = {
 
   clearPending: false,
 
+  pendingDrops: [],
+
+  tempWeaponActive: false,
+  tempWeaponTimer: 0,
+  savedWeaponIndex: 0,
+
+  cloneActive: false,
+  cloneTimer: 0,
+  cloneGroup: null,
+
   score: 0,
   combo: 0,
   maxCombo: 0,
@@ -50,7 +61,19 @@ export const state = {
   spawnTimer: 0,
   currentStage: null,
 
+  maxObstacleLevel: 0,
+  destroyedAtCurrentLevel: 0,
+
+  wavePlan: [],
+  currentWaveIndex: 0,
+  waveTimer: 0,
+  calmTimer: 0,
+  inCalm: false,
+  waveDropSpawned: false,
+
   highScore: 0,
+
+  continueState: null,
 
   lastTime: 0,
   t: 0,

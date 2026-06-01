@@ -18,24 +18,26 @@ export const MAX_BULLETS = 30;
 export const OBSTACLE_MIN_GAP = 40;
 
 export const POWERUPS = [
-  { type: 'shield',   name: '护盾',     color: 0x44AAFF, duration: 8,  icon: 'S' },
-  { type: 'slowtime', name: '减速时钟', color: 0xFFAA00, duration: 6,  icon: 'T' },
-  { type: 'double',   name: '双倍积分', color: 0xFF44FF, duration: 10, icon: 'x2' },
-  { type: 'clear',    name: '全屏清除', color: 0xFF4444, duration: 0,  icon: 'C' },
+  { type: 'shield',     name: '护盾',     color: 0x44AAFF, duration: 8,  icon: 'S' },
+  { type: 'slowtime',   name: '减速时钟', color: 0xFFAA00, duration: 6,  icon: 'T' },
+  { type: 'double',     name: '双倍积分', color: 0xFF44FF, duration: 10, icon: 'x2' },
+  { type: 'clear',      name: '全屏清除', color: 0xFF4444, duration: 0,  icon: 'C' },
+  { type: 'tempweapon', name: '临时武器', color: 0xFF6600, duration: 20, icon: 'W' },
+  { type: 'clone',      name: '分身',     color: 0x00FFAA, duration: 20, icon: 'C' },
 ];
 
-export const POWERUP_DROP_RATE = 0.04;
+export const POWERUP_DROP_RATE = 0.25;
 
 export const WEAPONS = [
   { level: 1,  name: '左轮手枪', damage: 10,   fireRate: 2.5,  type: 'single',    bulletSize: 3,  bulletColor: 0xffcc00, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
   { level: 2,  name: '手枪',     damage: 12,   fireRate: 3.0,  type: 'single',    bulletSize: 3,  bulletColor: 0xffcc00, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
-  { level: 3,  name: '双持手枪', damage: 10,   fireRate: 3.5,  type: 'dual',      bulletSize: 3,  bulletColor: 0xffaa00, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
-  { level: 4,  name: '冲锋枪',   damage: 8,    fireRate: 7.0,  type: 'spread',    bulletSize: 2,  bulletColor: 0xff8800, spreadAngle: 5, pierceCount: 0, explosionRadius: 0 },
-  { level: 5,  name: '霰弹枪',   damage: 15,   fireRate: 1.5,  type: 'shotgun',   bulletSize: 4,  bulletColor: 0xff6600, spreadAngle: 30,pierceCount: 0, explosionRadius: 0 },
-  { level: 6,  name: '步枪',     damage: 22,   fireRate: 4.0,  type: 'single',    bulletSize: 4,  bulletColor: 0x00ff88, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
-  { level: 7,  name: '狙击枪',   damage: 60,   fireRate: 1.0,  type: 'pierce',    bulletSize: 5,  bulletColor: 0x00ccff, spreadAngle: 0, pierceCount: 1, explosionRadius: 0 },
-  { level: 8,  name: '加特林',   damage: 10,   fireRate: 14.0, type: 'rapid',     bulletSize: 2,  bulletColor: 0xff4400, spreadAngle: 3, pierceCount: 0, explosionRadius: 0 },
-  { level: 9,  name: '火箭筒',   damage: 100,  fireRate: 0.8,  type: 'explosive', bulletSize: 6,  bulletColor: 0xff2200, spreadAngle: 0, pierceCount: 0, explosionRadius: 30 },
+  { level: 3,  name: '双持手枪', damage: 9,    fireRate: 3.5,  type: 'dual',      bulletSize: 3,  bulletColor: 0xffaa00, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
+  { level: 4,  name: '冲锋枪',   damage: 10,   fireRate: 8.0,  type: 'spread',    bulletSize: 2,  bulletColor: 0xff8800, spreadAngle: 2, pierceCount: 0, explosionRadius: 0 },
+  { level: 5,  name: '霰弹枪',   damage: 12,   fireRate: 2.0,  type: 'shotgun',   bulletSize: 3,  bulletColor: 0xff6600, spreadAngle: 12,pierceCount: 0, explosionRadius: 0 },
+  { level: 6,  name: '步枪',     damage: 25,   fireRate: 4.5,  type: 'single',    bulletSize: 4,  bulletColor: 0x00ff88, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
+  { level: 7,  name: '狙击枪',   damage: 70,   fireRate: 1.8,  type: 'pierce',    bulletSize: 5,  bulletColor: 0x00ccff, spreadAngle: 0, pierceCount: 1, explosionRadius: 0 },
+  { level: 8,  name: '加特林',   damage: 14,   fireRate: 16.0, type: 'rapid',     bulletSize: 2,  bulletColor: 0xff4400, spreadAngle: 2, pierceCount: 0, explosionRadius: 0 },
+  { level: 9,  name: '火箭筒',   damage: 120,  fireRate: 2.5,  type: 'explosive', bulletSize: 6,  bulletColor: 0xff2200, spreadAngle: 0, pierceCount: 0, explosionRadius: 40 },
   { level: 10, name: '激光炮',   damage: 20,   fireRate: -1,   type: 'beam',      bulletSize: 0,  bulletColor: 0x00ffff, spreadAngle: 0, pierceCount: 99,explosionRadius: 0 },
 ];
 
@@ -53,12 +55,12 @@ export const OBSTACLES = [
 ];
 
 export const DIFFICULTY_STAGES = [
-  { name: '新手期', timeStart: 0,   timeEnd: 20,    levelMin: 0, levelMax: 0, spawnInterval: 4.0, speedMult: 0.5, maxObstacles: 2, itemDropRate: 0.10, itemLevelMin: 0, itemLevelMax: 2, sameChannelOnly: true },
-  { name: '热身期', timeStart: 20,  timeEnd: 60,    levelMin: 0, levelMax: 1, spawnInterval: 3.0, speedMult: 0.6, maxObstacles: 3, itemDropRate: 0.08, itemLevelMin: 0, itemLevelMax: 2, sameChannelOnly: false },
-  { name: '挑战期', timeStart: 60,  timeEnd: 150,   levelMin: 1, levelMax: 3, spawnInterval: 2.4, speedMult: 0.8, maxObstacles: 4, itemDropRate: 0.08, itemLevelMin: 2, itemLevelMax: 5, sameChannelOnly: false },
-  { name: '困难期', timeStart: 150, timeEnd: 300,   levelMin: 2, levelMax: 5, spawnInterval: 2.0, speedMult: 1.0, maxObstacles: 4, itemDropRate: 0.08, itemLevelMin: 2, itemLevelMax: 5, sameChannelOnly: false },
-  { name: '炼狱期', timeStart: 300, timeEnd: 480,   levelMin: 4, levelMax: 7, spawnInterval: 1.5, speedMult: 1.2, maxObstacles: 5, itemDropRate: 0.10, itemLevelMin: 5, itemLevelMax: 8, sameChannelOnly: false },
-  { name: '地狱期', timeStart: 480, timeEnd: 99999, levelMin: 6, levelMax: 9, spawnInterval: 1.0, speedMult: 1.5, maxObstacles: 6, itemDropRate: 0.15, itemLevelMin: 7, itemLevelMax: 9, sameChannelOnly: false },
+  { name: '新手期', timeStart: 0,   timeEnd: 20,    spawnInterval: 4.0, speedMult: 0.5, maxObstacles: 2, itemDropRate: 0.10 },
+  { name: '热身期', timeStart: 20,  timeEnd: 60,    spawnInterval: 3.0, speedMult: 0.6, maxObstacles: 3, itemDropRate: 0.08 },
+  { name: '挑战期', timeStart: 60,  timeEnd: 150,   spawnInterval: 2.4, speedMult: 0.8, maxObstacles: 4, itemDropRate: 0.08 },
+  { name: '困难期', timeStart: 150, timeEnd: 300,   spawnInterval: 2.0, speedMult: 1.0, maxObstacles: 4, itemDropRate: 0.08 },
+  { name: '炼狱期', timeStart: 300, timeEnd: 480,   spawnInterval: 1.5, speedMult: 1.2, maxObstacles: 5, itemDropRate: 0.10 },
+  { name: '地狱期', timeStart: 480, timeEnd: 99999, spawnInterval: 1.0, speedMult: 1.5, maxObstacles: 6, itemDropRate: 0.15 },
 ];
 
 export const COMBO_THRESHOLDS = [

@@ -22,6 +22,7 @@
       </div>
       <div id="hud-middle">
         <span id="weapon">左轮手枪</span>
+        <span id="wave"></span>
         <span id="stage">新手期</span>
       </div>
       <div id="powerup-status"></div>
@@ -49,7 +50,7 @@
           </div>
           <div class="instruction">
             <span class="key">🛡 道具</span>
-            <span class="desc">护盾/减速/双倍/清除</span>
+            <span class="desc">护盾/减速/双倍/清除/临时武器/分身</span>
           </div>
         </div>
         <button id="startBtn" class="game-btn">START</button>
@@ -68,11 +69,24 @@
           <div class="stat-row"><span>HIGH SCORE</span><span id="high-score">0</span></div>
           <div class="stat-row weapons-row"><span>WEAPONS</span><span id="weapons-list"></span></div>
         </div>
-        <button id="retryBtn" class="game-btn">RETRY</button>
+        <div class="gameover-buttons">
+          <button id="restartBtn" class="game-btn btn-restart">RESTART</button>
+          <button id="continueBtn" class="game-btn btn-continue">
+            <span class="btn-label">CONTINUE</span>
+            <span class="btn-ad-hint">📺 观看广告</span>
+          </button>
+        </div>
       </div>
     </div>
 
     <button id="muteBtn" class="mute-btn">🔊</button>
+
+    <div id="ad-overlay" class="hidden">
+      <div id="ad-content">
+        <div id="ad-placeholder">📢 广告位</div>
+        <div id="ad-countdown-text">广告加载中 <span id="ad-countdown">3</span>s</div>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="js/main.js"></script>

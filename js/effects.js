@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { state } from './state.js';
+import { createTextTexture, disposeTextTexture } from './texttexture.js';
 
 const PARTICLE_COLORS = {
   wood: [0x8B4513, 0xA0522D, 0x6B3410],
@@ -377,6 +378,7 @@ export function updateEffects(dt) {
       state.scene.remove(fx.mesh);
       disposeMeshDeep(fx.mesh);
       if (fx.mat && fx.mat !== sharedPixelGeo) fx.mat.dispose();
+      if (fx.texResult) disposeTextTexture(fx.texResult);
       state.effects.splice(i, 1);
     }
   }
@@ -419,4 +421,34 @@ export function resetEffects() {
     state.camera.position.x = 0;
     state.camera.position.y = 0;
   }
+}
+
+export function spawnWaveAnnouncement(waveIndex) {
+  const group = new THREE.Group();
+
+  const bgGeo = new THREE.PlaneGeometry(100, 20);
+  const bgMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.6 });
+  const bg = new THREE.Mesh(bgGeo, bgMat);
+  bg.position.z = 25;
+  group.add(bg);
+
+  const borderGeo = new THREE.PlaneGeometry(102, 22);
+  const borderMat = new THREE.MeshBasicMaterial({ color: 0xFFD700, transparent: true, opacity: 0.4 });
+  const border = new THREE.Mesh(borderGeo, borderMat);
+  border.position.z = 24;
+  group.add(border);
+
+  const waveNames = ['教学', '热身', '初级', '进阶', '挑战', '困难', '精英', '噩梦', '地狱', '深渊'];
+  const waveName = waveNames[waveIndex] || `W${waveIndex + 1}`;
+  const texResult = createTextTexture(`WAVE ${waveIndex + 1} - ${waveName}`, '#FFD700', 8);
+  const labelGeo = new THREE.PlaneGeometry(texResult.width, texResult.height);
+  const labelMat = new THREE.MeshBasicMaterial({ map: texResult.texture, transparent: true, depthWrite: false });
+  const label = new THREE.Mesh(labelGeo, labelMat);
+  label.position.z = 26;
+  group.add(label);
+
+  group.position.set(0, 0, 0);
+  state.scene.add(group);
+
+  state.effects.push({ mesh: group, mat: bgMat, type: 'popup', timer: 0, duration: 2.0, texResult });
 }

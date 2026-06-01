@@ -110,6 +110,46 @@ async function renderDestroyBuffer(freq) {
   return await offline.startRendering();
 }
 
+async function renderExplosionBuffer() {
+  const totalDuration = 0.5;
+  const sampleRate = audioCtx.sampleRate;
+  const length = Math.ceil(totalDuration * sampleRate);
+  const offline = new OfflineAudioContext(1, length, sampleRate);
+
+  const noiseLength = Math.ceil(0.3 * sampleRate);
+  const noiseBuffer = offline.createBuffer(1, noiseLength, sampleRate);
+  const noiseData = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < noiseLength; i++) noiseData[i] = Math.random() * 2 - 1;
+  const noise = offline.createBufferSource();
+  noise.buffer = noiseBuffer;
+  const noiseGain = offline.createGain();
+  noiseGain.gain.setValueAtTime(0.35, 0);
+  noiseGain.gain.exponentialRampToValueAtTime(0.01, 0.3);
+  const noiseFilter = offline.createBiquadFilter();
+  noiseFilter.type = 'lowpass';
+  noiseFilter.frequency.setValueAtTime(800, 0);
+  noiseFilter.frequency.exponentialRampToValueAtTime(100, 0.3);
+  noise.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseGain.connect(offline.destination);
+  noise.start(0);
+  noise.stop(totalDuration);
+
+  const osc = offline.createOscillator();
+  const oscGain = offline.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(120, 0);
+  osc.frequency.exponentialRampToValueAtTime(20, 0.3);
+  oscGain.gain.setValueAtTime(0.4, 0);
+  oscGain.gain.exponentialRampToValueAtTime(0.01, 0.35);
+  osc.connect(oscGain);
+  oscGain.connect(offline.destination);
+  osc.start(0);
+  osc.stop(totalDuration);
+
+  return await offline.startRendering();
+}
+
 async function renderPickupBuffer() {
   const totalDuration = 0.3;
   const sampleRate = audioCtx.sampleRate;
@@ -317,7 +357,7 @@ const GUN_AUDIO_CONFIGS = [
   { freq: 280, type: 'triangle', attack: 0.005, decay: 0.04, sustain: 0.4, duration: 0.06, release: 0.1 },
   { freq: 800, type: 'sine',     attack: 0.002, decay: 0.03, sustain: 0.2, duration: 0.05, release: 0.2 },
   { freq: 150, type: 'sawtooth', attack: 0.002, decay: 0.01, sustain: 0.15, duration: 0.02, release: 0.03 },
-  { freq: 80,  type: 'sawtooth', attack: 0.01, decay: 0.1, sustain: 0.5, duration: 0.15, release: 0.3 },
+  { freq: 60, type: 'sine',     attack: 0.01, decay: 0.15, sustain: 0.2, duration: 0.08, release: 0.15 },
   { freq: 500, type: 'sine',     attack: 0.01, decay: 0.02, sustain: 0.6, duration: 0.05, release: 0.05 },
 ];
 
