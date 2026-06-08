@@ -358,6 +358,8 @@ const GUN_AUDIO_CONFIGS = [
   { freq: 800, type: 'sine',     attack: 0.002, decay: 0.03, sustain: 0.2, duration: 0.05, release: 0.2 },
   { freq: 150, type: 'sawtooth', attack: 0.002, decay: 0.01, sustain: 0.15, duration: 0.02, release: 0.03 },
   { freq: 60, type: 'sine',     attack: 0.01, decay: 0.15, sustain: 0.2, duration: 0.08, release: 0.15 },
+  { freq: 600, type: 'sine',     attack: 0.01, decay: 0.02, sustain: 0.5, duration: 0.05, release: 0.05 },
+  { freq: 700, type: 'sine',     attack: 0.01, decay: 0.02, sustain: 0.5, duration: 0.05, release: 0.05 },
   { freq: 500, type: 'sine',     attack: 0.01, decay: 0.02, sustain: 0.6, duration: 0.05, release: 0.05 },
 ];
 
@@ -406,6 +408,7 @@ async function prerenderBuffers() {
   promises.push(renderPickupBuffer().then(buf => bufferMap.set('pickup', buf)));
   promises.push(renderPowerupBuffer().then(buf => bufferMap.set('powerup', buf)));
   promises.push(renderGameOverBuffer().then(buf => bufferMap.set('gameover', buf)));
+  promises.push(renderExplosionBuffer().then(buf => bufferMap.set('explosion', buf)));
 
   for (const level of [5, 10, 20, 50]) {
     const l = level;
@@ -515,6 +518,7 @@ export function playDestroySound(materialType) { playFromBuffer(`destroy_${mater
 export function playPickup() { playFromBuffer('pickup'); }
 export function playPowerup() { playFromBuffer('powerup'); }
 export function playGameOver() { playFromBuffer('gameover'); }
+export function playExplosion() { playFromBuffer('explosion'); }
 export function playComboSound(combo) {
   const levels = [5, 10, 20, 50];
   for (let i = levels.length - 1; i >= 0; i--) {

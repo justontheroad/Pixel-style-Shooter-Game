@@ -165,7 +165,11 @@ export function gameLoop(timestamp) {
           const dropX = state.currentChannel === 'left' ? CHANNEL_LEFT_X : CHANNEL_RIGHT_X;
           const dropY = 200;
           if (drop.type === 'weapon') {
-            createItem(dropX, dropY, drop.weaponLevel);
+            const currentIdx = state.tempWeaponActive ? state.savedWeaponIndex : state.currentWeaponIndex;
+            const weaponLevel = Math.min(currentIdx + 1, drop.weaponTarget - 1, WEAPONS.length - 1);
+            if (weaponLevel > currentIdx) {
+              createItem(dropX, dropY, weaponLevel);
+            }
           } else if (drop.type === 'powerup') {
             const puIndex = POWERUPS.findIndex(p => p.type === drop.powerupType);
             if (puIndex >= 0) createPowerup(dropX, dropY, puIndex);

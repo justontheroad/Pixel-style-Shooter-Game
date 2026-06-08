@@ -87,11 +87,11 @@ export function updateGunAppearance() {
   const colorMap = {
     1: 0x888888, 2: 0x666666, 3: 0x666666, 4: 0x555555,
     5: 0x8B4513, 6: 0x4a3728, 7: 0x2a4a2a, 8: 0x444444,
-    9: 0x3a5a3a, 10: 0x00aacc
+    9: 0x3a5a3a, 10: 0x008855, 11: 0x0088aa, 12: 0x00aacc
   };
   state.gunMesh.material.color.set(colorMap[weapon.level] || 0x888888);
 
-  const sizeMap = { 1: [4, 10], 2: [4, 10], 3: [4, 10], 4: [6, 12], 5: [8, 10], 6: [4, 14], 7: [3, 18], 8: [8, 14], 9: [6, 16], 10: [6, 20] };
+  const sizeMap = { 1: [4, 10], 2: [4, 10], 3: [4, 10], 4: [6, 12], 5: [8, 10], 6: [4, 14], 7: [3, 18], 8: [8, 14], 9: [6, 16], 10: [4, 16], 11: [5, 16], 12: [6, 20] };
   const [w, h] = sizeMap[weapon.level] || [4, 10];
   state.gunMesh.geometry.dispose();
   state.gunMesh.geometry = new THREE.PlaneGeometry(w, h);

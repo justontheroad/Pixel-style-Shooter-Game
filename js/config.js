@@ -29,16 +29,18 @@ export const POWERUPS = [
 export const POWERUP_DROP_RATE = 0.25;
 
 export const WEAPONS = [
-  { level: 1,  name: '左轮手枪', damage: 10,   fireRate: 2.5,  type: 'single',    bulletSize: 3,  bulletColor: 0xffcc00, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
-  { level: 2,  name: '手枪',     damage: 12,   fireRate: 3.0,  type: 'single',    bulletSize: 3,  bulletColor: 0xffcc00, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
-  { level: 3,  name: '双持手枪', damage: 9,    fireRate: 3.5,  type: 'dual',      bulletSize: 3,  bulletColor: 0xffaa00, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
-  { level: 4,  name: '冲锋枪',   damage: 10,   fireRate: 8.0,  type: 'spread',    bulletSize: 2,  bulletColor: 0xff8800, spreadAngle: 2, pierceCount: 0, explosionRadius: 0 },
-  { level: 5,  name: '霰弹枪',   damage: 12,   fireRate: 2.0,  type: 'shotgun',   bulletSize: 3,  bulletColor: 0xff6600, spreadAngle: 12,pierceCount: 0, explosionRadius: 0 },
-  { level: 6,  name: '步枪',     damage: 25,   fireRate: 4.5,  type: 'single',    bulletSize: 4,  bulletColor: 0x00ff88, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
-  { level: 7,  name: '狙击枪',   damage: 70,   fireRate: 1.8,  type: 'pierce',    bulletSize: 5,  bulletColor: 0x00ccff, spreadAngle: 0, pierceCount: 1, explosionRadius: 0 },
-  { level: 8,  name: '加特林',   damage: 14,   fireRate: 16.0, type: 'rapid',     bulletSize: 2,  bulletColor: 0xff4400, spreadAngle: 2, pierceCount: 0, explosionRadius: 0 },
-  { level: 9,  name: '火箭筒',   damage: 120,  fireRate: 2.5,  type: 'explosive', bulletSize: 6,  bulletColor: 0xff2200, spreadAngle: 0, pierceCount: 0, explosionRadius: 40 },
-  { level: 10, name: '激光炮',   damage: 20,   fireRate: -1,   type: 'beam',      bulletSize: 0,  bulletColor: 0x00ffff, spreadAngle: 0, pierceCount: 99,explosionRadius: 0 },
+  { level: 1,  name: '左轮手枪',   damage: 10,   fireRate: 2.5,  type: 'single',    bulletSize: 3,  bulletColor: 0xffcc00, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
+  { level: 2,  name: '手枪',       damage: 12,   fireRate: 3.0,  type: 'single',    bulletSize: 3,  bulletColor: 0xffcc00, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
+  { level: 3,  name: '双持手枪',   damage: 9,    fireRate: 3.5,  type: 'dual',      bulletSize: 3,  bulletColor: 0xffaa00, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
+  { level: 4,  name: '冲锋枪',     damage: 10,   fireRate: 8.0,  type: 'spread',    bulletSize: 2,  bulletColor: 0xff8800, spreadAngle: 2, pierceCount: 0, explosionRadius: 0 },
+  { level: 5,  name: '霰弹枪',     damage: 12,   fireRate: 2.0,  type: 'shotgun',   bulletSize: 3,  bulletColor: 0xff6600, spreadAngle: 12,pierceCount: 0, explosionRadius: 0 },
+  { level: 6,  name: '步枪',       damage: 120,  fireRate: 1.5,  type: 'single',    bulletSize: 4,  bulletColor: 0x00ff88, spreadAngle: 0, pierceCount: 1, explosionRadius: 0 },
+  { level: 7,  name: '狙击枪',     damage: 120,  fireRate: 2.0,  type: 'pierce',    bulletSize: 5,  bulletColor: 0x00ccff, spreadAngle: 0, pierceCount: 2, explosionRadius: 0 },
+  { level: 8,  name: '加特林',     damage: 14,   fireRate: 16.0, type: 'rapid',     bulletSize: 2,  bulletColor: 0xff4400, spreadAngle: 2, pierceCount: 0, explosionRadius: 0 },
+  { level: 9,  name: '火箭筒',     damage: 200,  fireRate: 1.5,  type: 'explosive', bulletSize: 6,  bulletColor: 0xff2200, spreadAngle: 0, pierceCount: 0, explosionRadius: 90 },
+  { level: 10, name: '激光枪',     damage: 8,    fireRate: -1,   type: 'beam',      bulletSize: 2,  bulletColor: 0x00ff88, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
+  { level: 11, name: '双持激光枪', damage: 8,    fireRate: -1,   type: 'beam',      bulletSize: 2,  bulletColor: 0x00ddff, spreadAngle: 0, pierceCount: 0, explosionRadius: 0, dualBeam: true },
+  { level: 12, name: '激光炮',     damage: 20,   fireRate: -1,   type: 'beam',      bulletSize: 6,  bulletColor: 0x00ffff, spreadAngle: 0, pierceCount: 99,explosionRadius: 0 },
 ];
 
 export const OBSTACLES = [

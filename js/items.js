@@ -31,12 +31,11 @@ export function tryDropItem(x, y, obstacleLevel) {
   let weaponLevel = realWeaponIndex + 1;
   const waveConfig = state.wavePlan ? getWaveSpawnConfig(state.gameTime) : null;
   if (waveConfig && waveConfig.weaponTarget) {
-    const target = waveConfig.weaponTarget - 1;
-    if (target > realWeaponIndex) {
-      weaponLevel = Math.min(realWeaponIndex + 2, target + 1);
-    }
+    const maxLevel = waveConfig.weaponTarget - 1;
+    weaponLevel = Math.min(weaponLevel, maxLevel);
   }
   if (weaponLevel >= WEAPONS.length) return;
+  if (weaponLevel <= realWeaponIndex) return;
 
   createItem(playerChannelX, y, weaponLevel);
 }
