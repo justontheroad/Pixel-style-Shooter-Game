@@ -26,7 +26,7 @@ export const POWERUPS = [
   { type: 'clone',      name: '分身',     color: 0x00FFAA, duration: 20, icon: 'C' },
 ];
 
-export const POWERUP_DROP_RATE = 0.25;
+export const POWERUP_DROP_RATE = 0.35;
 
 export const WEAPONS = [
   { level: 1,  name: '左轮手枪',   damage: 10,   fireRate: 2.5,  type: 'single',    bulletSize: 3,  bulletColor: 0xffcc00, spreadAngle: 0, pierceCount: 0, explosionRadius: 0 },
