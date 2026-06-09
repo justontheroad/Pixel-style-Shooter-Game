@@ -21,7 +21,7 @@ export function updateWeapons(dt) {
 
   if (weapon.type === 'beam') {
     updateBeam(dt, weapon);
-    if (state.cloneActive || weapon.dualBeam) {
+    if (state.cloneActive || weapon.dualBeam || cloneBeamMesh) {
       updateCloneBeam(dt, weapon);
     }
     updateBullets(dt);
@@ -245,7 +245,7 @@ function updateCloneBullets(dt) {
         obs.flashTimer = 0.1;
         obs.hitScale = 1.08;
         playHitSound(obs.materialType);
-        spawnHitParticles(b.mesh.position.x, b.mesh.position.y, obs.materialType, obs.colorHex);
+        spawnHitParticles(b.mesh.position.x, b.mesh.position.y, obs.materialType, obs.colorHex, weapon.level);
         spawnDamageText(b.mesh.position.x, b.mesh.position.y + obs.height / 2, b.damage, 0x00FFAA);
         if (obs.hp <= 0) {
           destroyObstacle(obs);
@@ -279,7 +279,7 @@ export function hitObstacle(obs, bullet) {
   obs.hitScale = 1.08;
 
   playHitSound(obs.materialType);
-  spawnHitParticles(bullet.mesh.position.x, bullet.mesh.position.y, obs.materialType, obs.colorHex);
+  spawnHitParticles(bullet.mesh.position.x, bullet.mesh.position.y, obs.materialType, obs.colorHex, bullet.weaponLevel);
 
   const dmgColor = getDamageColor(bullet.damage, bullet.weaponLevel);
   spawnDamageText(bullet.mesh.position.x, bullet.mesh.position.y + obs.height / 2, bullet.damage, dmgColor);
@@ -323,7 +323,7 @@ export function destroyObstacle(obs) {
     triggerScreenShake(2.0);
   } else if (obs.level === 10) {
     spawnExtraExplosion(obs.mesh.position.x, obs.mesh.position.y, 35, 0x8888FF);
-    triggerScreenShake(3.0);
+    triggerScreenShake(4.5);
   } else if (obs.level >= 6) {
     triggerScreenShake(1.0);
   }
@@ -422,7 +422,7 @@ function updateBeam(dt, weapon) {
 
   if (Math.random() < 0.1) {
     const py = beamY + Math.random() * beamHeight;
-    spawnHitParticles(playerX + offsetX, py, 'energy', weapon.bulletColor);
+    spawnHitParticles(playerX + offsetX, py, 'energy', weapon.bulletColor, weapon.level);
   }
 }
 
@@ -520,7 +520,7 @@ function updateCloneBeam(dt, weapon) {
 
   if (Math.random() < 0.1) {
     const py = beamY + Math.random() * beamHeight;
-    spawnHitParticles(targetX, py, 'energy', isDualBeam ? weapon.bulletColor : 0x00FFAA);
+    spawnHitParticles(targetX, py, 'energy', isDualBeam ? weapon.bulletColor : 0x00FFAA, weapon.level);
   }
 }
 

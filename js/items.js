@@ -8,7 +8,7 @@ import {
   CHANNEL_WIDTH
 } from './config.js';
 import { getWaveSpawnConfig } from './waves.js';
-import { updateGunAppearance } from './player.js';
+import { updateGunAppearance, createWeaponTexture, WEAPON_PIXELS } from './player.js';
 import { spawnPickupParticles, spawnItemSparkle, spawnExtraExplosion, triggerScreenShake } from './effects.js';
 import { playPickup, playPowerup } from './audio.js';
 import { createTextTexture, disposeTextTexture } from './texttexture.js';
@@ -239,6 +239,7 @@ function pickupItem(item) {
   if (weaponLevel > state.currentWeaponIndex) {
     state.currentWeaponIndex = weaponLevel;
     updateGunAppearance();
+    updateCloneGunAppearance();
     state.weaponsUsed.add(weaponLevel);
     spawnPickupParticles(state.playerX, PLAYER_Y);
     playPickup();
@@ -279,6 +280,7 @@ function activatePowerup(pu) {
       state.savedWeaponIndex = state.currentWeaponIndex;
       state.currentWeaponIndex = Math.min(state.currentWeaponIndex + 3, WEAPONS.length - 1);
       updateGunAppearance();
+      updateCloneGunAppearance();
       break;
     case 'clone':
       state.cloneActive = true;
@@ -339,8 +341,12 @@ function updatePowerupTimers(dt) {
     if (state.tempWeaponTimer <= 0) {
       state.tempWeaponActive = false;
       state.tempWeaponTimer = 0;
+      state.tempWeaponWarning = false;
       state.currentWeaponIndex = state.savedWeaponIndex;
       updateGunAppearance();
+      updateCloneGunAppearance();
+    } else if (state.tempWeaponTimer < 3) {
+      state.tempWeaponWarning = true;
     }
   }
 
@@ -390,6 +396,42 @@ function createClone() {
 
   state.cloneGroup = group;
   state.cloneBullets = [];
+  state.cloneGun = gun;
+  updateCloneGunAppearance();
+}
+
+export function updateCloneGunAppearance() {
+  const gun = state.cloneGun;
+  if (!gun) return;
+  const weapon = WEAPONS[state.currentWeaponIndex];
+  const spec = WEAPON_PIXELS[weapon.level];
+
+  if (gun.material.map) {
+    gun.material.map.dispose();
+    gun.material.map = null;
+  }
+
+  if (spec) {
+    const canvas = createWeaponTexture(weapon.level);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+
+    const displayW = spec.w * 2;
+    const displayH = spec.h * 2;
+    gun.geometry.dispose();
+    gun.geometry = new THREE.PlaneGeometry(displayW, displayH);
+
+    gun.material.color.set(0xffffff);
+    gun.material.map = texture;
+    gun.material.transparent = true;
+    gun.material.opacity = 0.6;
+    gun.material.needsUpdate = true;
+    gun.position.set(4, PLAYER_HEIGHT / 2 + displayH / 2 - 2, 6);
+  } else {
+    gun.material.color.set(0x888888);
+    gun.material.opacity = 0.5;
+  }
 }
 
 function removeClone() {
@@ -397,9 +439,13 @@ function removeClone() {
     state.scene.remove(state.cloneGroup);
     state.cloneGroup.children.forEach(child => {
       if (child.geometry) child.geometry.dispose();
-      if (child.material) child.material.dispose();
+      if (child.material) {
+        if (child.material.map) child.material.map.dispose();
+        child.material.dispose();
+      }
     });
     state.cloneGroup = null;
+    state.cloneGun = null;
   }
   for (let i = state.cloneBullets.length - 1; i >= 0; i--) {
     const b = state.cloneBullets[i];
@@ -443,6 +489,7 @@ export function resetItems() {
   state.tempWeaponActive = false;
   state.tempWeaponTimer = 0;
   state.savedWeaponIndex = 0;
+  state.tempWeaponWarning = false;
 
   state.cloneActive = false;
   state.cloneTimer = 0;

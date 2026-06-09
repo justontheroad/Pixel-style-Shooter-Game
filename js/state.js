@@ -40,10 +40,12 @@ export const state = {
   tempWeaponActive: false,
   tempWeaponTimer: 0,
   savedWeaponIndex: 0,
+  tempWeaponWarning: false,
 
   cloneActive: false,
   cloneTimer: 0,
   cloneGroup: null,
+  cloneGun: null,
 
   score: 0,
   combo: 0,

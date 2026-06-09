@@ -15,10 +15,18 @@ const MAX_DAMAGE_TEXTS = 20;
 
 const sharedPixelGeo = new THREE.PlaneGeometry(1, 1);
 
-export function spawnHitParticles(x, y, materialType, colorHex) {
+export function spawnHitParticles(x, y, materialType, colorHex, weaponLevel) {
   if (state.effects.length >= MAX_EFFECTS) return;
   const colors = PARTICLE_COLORS[materialType] || [colorHex, 0xFFFFFF, 0xFFFF00];
-  const count = state.isMobile ? 2 : 3;
+  let count;
+  if (state.isMobile) {
+    count = 2;
+  } else {
+    const lvl = weaponLevel || 1;
+    if (lvl <= 4) count = 3;
+    else if (lvl <= 8) count = 5;
+    else count = 8;
+  }
 
   for (let i = 0; i < count; i++) {
     const size = 1 + Math.random() * 2;
@@ -74,6 +82,16 @@ export function spawnDestroyParticles(x, y, w, h, colorHex, materialType) {
   flashMesh.position.set(x, y, 15);
   state.scene.add(flashMesh);
   state.effects.push({ mesh: flashMesh, mat: flashMat, type: 'flash', timer: 0, duration: 0.15 });
+
+  // 径向冲击波环
+  if (!state.isMobile) {
+    const ringGeo = new THREE.PlaneGeometry(w, h);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.5 });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.position.set(x, y, 16);
+    state.scene.add(ringMesh);
+    state.effects.push({ mesh: ringMesh, mat: ringMat, type: 'shockwave', timer: 0, duration: 0.2 });
+  }
 }
 
 export function spawnMuzzleFlash(x, y) {
@@ -205,6 +223,16 @@ export function spawnComboFlash(combo) {
   flashMesh.position.set(0, 0, 30);
   state.scene.add(flashMesh);
   state.effects.push({ mesh: flashMesh, mat: flashMat, type: 'comboflash', timer: 0, duration: 0.3 });
+
+  // 连击 ×10/×20/×30+ 金色 vignette
+  if (combo >= 10) {
+    const vignetteGeo = new THREE.PlaneGeometry(240, 400);
+    const vignetteMat = new THREE.MeshBasicMaterial({ color: 0xFFD700, transparent: true, opacity: 0.1 });
+    const vignetteMesh = new THREE.Mesh(vignetteGeo, vignetteMat);
+    vignetteMesh.position.set(0, 0, 31);
+    state.scene.add(vignetteMesh);
+    state.effects.push({ mesh: vignetteMesh, mat: vignetteMat, type: 'comboflash', timer: 0, duration: 0.5 });
+  }
 
   const textGroup = new THREE.Group();
   const labels = { 5: 'NICE!', 10: 'GREAT!', 20: 'AMAZING!', 50: 'LEGENDARY!' };
@@ -365,6 +393,10 @@ export function updateEffects(dt) {
       });
     } else if (fx.type === 'comboflash') {
       fx.mat.opacity = Math.max(0, 0.15 * (1 - progress));
+    } else if (fx.type === 'shockwave') {
+      fx.mat.opacity = Math.max(0, 0.5 * (1 - progress));
+      const scale = 1 + progress * 3;
+      fx.mesh.scale.setScalar(scale);
     } else if (fx.type === 'combotext') {
       fx.mesh.position.y += 10 * dt;
       const scale = 2 + progress * 0.5;

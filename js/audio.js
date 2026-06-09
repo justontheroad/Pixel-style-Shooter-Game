@@ -1,3 +1,5 @@
+import { state } from './state.js';
+
 let audioCtx = null;
 let masterGain = null;
 let bgmGain = null;
@@ -491,6 +493,9 @@ export function startBgm() {
   bgmSource.connect(bgmGain);
   bgmSource.start();
   bgmPlaying = true;
+
+  state._bgmSource = bgmSource;
+  state._bgmPlaybackRate = bgmPlaybackRate;
 }
 
 export function stopBgm() {
@@ -509,6 +514,7 @@ export function updateBgmSpeed(stageIndex) {
   if (newRate !== bgmPlaybackRate && bgmSource) {
     bgmPlaybackRate = newRate;
     bgmSource.playbackRate.value = newRate;
+    state._bgmPlaybackRate = newRate;
   }
 }
 
@@ -526,6 +532,16 @@ export function playComboSound(combo) {
       playFromBuffer(`combo_${levels[i]}`);
       return;
     }
+  }
+  // 连击 ×30+ 时叠加和声层
+  if (combo >= 30 && combo % 10 === 0 && bgmSource && bgmPlaying) {
+    const currentRate = bgmPlaybackRate;
+    bgmSource.playbackRate.value = currentRate * 1.05;
+    setTimeout(() => {
+      if (bgmSource && bgmPlaying) {
+        bgmSource.playbackRate.value = currentRate;
+      }
+    }, 200);
   }
 }
 export function toggleMute() {

@@ -7,7 +7,7 @@ import { updateItems, resetItems, createItem, createPowerup } from './items.js';
 import { updateEffects, resetEffects, spawnWaveAnnouncement } from './effects.js';
 import { updateScene } from './scene.js';
 import { resetScore } from './score.js';
-import { showGameOver, hideGameOver, hideStartScreen, updateHUD, showHUD } from './ui.js';
+import { showGameOver, hideGameOver, hideStartScreen, updateHUD, showHUD, showPauseOverlay, hidePauseOverlay } from './ui.js';
 import { initAudio, playGameOver, startBgm, stopBgm, updateBgmSpeed, toggleMute } from './audio.js';
 import { generateWavePlan, getCurrentWave, getWaveSpawnConfig } from './waves.js';
 
@@ -51,6 +51,20 @@ export function initGame() {
     });
   }
 
+  const pauseBtn = document.getElementById('pauseBtn');
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', () => {
+      if (state.gameActive || state.paused) togglePause();
+    });
+  }
+
+  const resumeBtn = document.getElementById('resumeBtn');
+  if (resumeBtn) {
+    resumeBtn.addEventListener('click', () => {
+      if (state.paused) togglePause();
+    });
+  }
+
   requestAnimationFrame(gameLoop);
 }
 
@@ -82,6 +96,7 @@ export function startGame() {
   state.gameActive = true;
   state.gameStarted = true;
   state.gameOver = false;
+  state.paused = false;
   state.gameTime = 0;
   state.spawnTimer = 0;
   state.currentWeaponIndex = 0;
@@ -115,6 +130,14 @@ export function gameLoop(timestamp) {
   state.lastTime = timestamp;
 
   if (dt > 0.1) dt = 0.1;
+
+  if (state.paused) {
+    // 暂停时仍渲染，但不更新逻辑
+    if (state.renderer && state.scene && state.camera) {
+      state.renderer.render(state.scene, state.camera);
+    }
+    return;
+  }
 
   if (state.gameActive) {
     let gameDt = dt;
@@ -303,6 +326,7 @@ function continueGame() {
   state.doubleScoreTimer = 0;
   state.tempWeaponActive = false;
   state.tempWeaponTimer = 0;
+  state.tempWeaponWarning = false;
   state.cloneActive = false;
   state.cloneTimer = 0;
   state.clearPending = false;
@@ -323,4 +347,24 @@ export function loadHighScore() {
     const saved = localStorage.getItem('pixelShooter_highScore');
     if (saved) state.highScore = parseInt(saved, 10) || 0;
   } catch(e) {}
+}
+
+export function togglePause() {
+  if (!state.gameActive && !state.paused) return;
+  state.paused = !state.paused;
+  if (state.paused) {
+    state.gameActive = false;
+    showPauseOverlay();
+    // 背景音乐降速
+    if (state._bgmSource && state._bgmSource.playbackRate) {
+      state._bgmSource.playbackRate.value = state._bgmPlaybackRate * 0.5;
+    }
+  } else {
+    state.gameActive = true;
+    hidePauseOverlay();
+    // 恢复背景音乐速度
+    if (state._bgmSource && state._bgmSource.playbackRate) {
+      state._bgmSource.playbackRate.value = state._bgmPlaybackRate;
+    }
+  }
 }

@@ -80,11 +80,28 @@
     </div>
 
     <button id="muteBtn" class="mute-btn">🔊</button>
+    <button id="pauseBtn" class="pause-btn">⏸</button>
+
+    <div id="pause-overlay" class="hidden">
+      <div id="pause-content">
+        <h2>PAUSED</h2>
+        <div class="pause-buttons">
+          <button id="resumeBtn" class="game-btn btn-resume">RESUME</button>
+        </div>
+      </div>
+    </div>
 
     <div id="ad-overlay" class="hidden">
       <div id="ad-content">
         <div id="ad-placeholder">📢 广告位</div>
         <div id="ad-countdown-text">广告加载中 <span id="ad-countdown">3</span>s</div>
+      </div>
+    </div>
+
+    <div id="orientation-mask" class="hidden">
+      <div id="orientation-content">
+        <div id="rotate-icon">📱</div>
+        <p>请旋转设备至竖屏</p>
       </div>
     </div>
   </div>

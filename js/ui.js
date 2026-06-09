@@ -49,9 +49,19 @@ export function updateHUD() {
     if (state.shieldActive) parts.push(`🛡${state.shieldTimer.toFixed(1)}s`);
     if (state.slowTimeActive) parts.push(`⏳${state.slowTimeTimer.toFixed(1)}s`);
     if (state.doubleScoreActive) parts.push(`×2 ${state.doubleScoreTimer.toFixed(1)}s`);
-    if (state.tempWeaponActive) parts.push(`🔫临时${state.tempWeaponTimer.toFixed(1)}s`);
+    if (state.tempWeaponActive) {
+      parts.push(`🔫临时${state.tempWeaponTimer.toFixed(1)}s`);
+    }
     if (state.cloneActive) parts.push(`👥分身${state.cloneTimer.toFixed(1)}s`);
     powerupEl.textContent = parts.join(' ');
+    // 临时武器预警时 HUD 变红
+    if (state.tempWeaponActive && state.tempWeaponTimer < 3) {
+      powerupEl.style.color = '#ff4444';
+      powerupEl.style.textShadow = '0 0 6px #ff4444';
+    } else {
+      powerupEl.style.color = '';
+      powerupEl.style.textShadow = '';
+    }
   }
 }
 
@@ -103,5 +113,15 @@ export function showStartScreen() {
 
 export function hideStartScreen() {
   const overlay = document.getElementById('start-overlay');
+  hide(overlay);
+}
+
+export function showPauseOverlay() {
+  const overlay = document.getElementById('pause-overlay');
+  show(overlay);
+}
+
+export function hidePauseOverlay() {
+  const overlay = document.getElementById('pause-overlay');
   hide(overlay);
 }
