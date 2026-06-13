@@ -66,7 +66,7 @@ function fireBullets(weapon) {
       break;
     }
     case 'shotgun': {
-      const pelletCount = 5;
+      const pelletCount = 7;
       const spreadDeg = weapon.spreadAngle;
       for (let i = 0; i < pelletCount; i++) {
         const t = pelletCount > 1 ? (i / (pelletCount - 1)) * 2 - 1 : 0;
@@ -172,7 +172,7 @@ function fireCloneBullets(weapon) {
       break;
     }
     case 'shotgun': {
-      const pelletCount = 5;
+      const pelletCount = 7;
       const spreadDeg = weapon.spreadAngle;
       for (let i = 0; i < pelletCount; i++) {
         const t = pelletCount > 1 ? (i / (pelletCount - 1)) * 2 - 1 : 0;

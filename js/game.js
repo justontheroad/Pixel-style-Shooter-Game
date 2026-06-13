@@ -118,6 +118,7 @@ export function startGame() {
   resetEffects();
   resetScore();
 
+  updateGunAppearance();
   showHUD();
   startBgm();
 }
